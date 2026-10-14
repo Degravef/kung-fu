@@ -42,15 +42,54 @@ const floor = new THREE.Mesh(new THREE.CircleGeometry(7, 72), new THREE.MeshStan
 floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
 scene.add(floor);
-const grid = new THREE.GridHelper(14, 28, 0x34406a, 0x222b4a);
-grid.position.y = 0.002;
-scene.add(grid);
+let grid = null;
 // Floor arrow = the direction the character faces (+Z).
 const front = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0.004, 0.75), 0.45, 0x5566a0, 0.14, 0.1);
 scene.add(front);
 
+const SCENE_THEME = {
+  dark: { bg: 0x0b0f1a, floor: 0x141a2e, grid: [0x34406a, 0x222b4a], arrow: 0x5566a0 },
+  light: { bg: 0xeef1f7, floor: 0xffffff, grid: [0xaab4cc, 0xc6cee0], arrow: 0x7f8fb5 },
+};
+
+function applyTheme(theme, persist = true) {
+  const t = SCENE_THEME[theme];
+  document.documentElement.dataset.theme = theme;
+  scene.background.set(t.bg);
+  scene.fog.color.set(t.bg);
+  floor.material.color.set(t.floor);
+  if (grid) {
+    scene.remove(grid);
+    grid.geometry.dispose();
+    grid.material.dispose();
+  }
+  grid = new THREE.GridHelper(14, 28, ...t.grid);
+  grid.position.y = 0.002;
+  scene.add(grid);
+  front.setColor(t.arrow);
+  stickboy.setTheme(theme);
+  const btn = $('#theme-toggle');
+  btn.textContent = theme === 'dark' ? '☀ Light' : '☾ Dark';
+  btn.title = `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`;
+  if (persist) {
+    try { localStorage.setItem('theme', theme); } catch { /* private mode: just don't remember it */ }
+  }
+}
+
 const stickboy = new Stickboy();
 scene.add(stickboy.root);
+
+let savedTheme = null;
+try { savedTheme = localStorage.getItem('theme'); } catch { /* storage blocked */ }
+const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+applyTheme(savedTheme ?? (darkQuery.matches ? 'dark' : 'light'), false);
+$('#theme-toggle').addEventListener('click', () => applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
+// Until the user picks a theme themselves, follow the OS.
+darkQuery.addEventListener('change', (e) => {
+  let chosen = null;
+  try { chosen = localStorage.getItem('theme'); } catch { /* ignore */ }
+  if (!chosen) applyTheme(e.matches ? 'dark' : 'light', false);
+});
 
 /* ------------------------------------------------- state & helpers */
 

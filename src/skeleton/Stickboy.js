@@ -14,8 +14,12 @@ const AXIS = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: 
 const DEG2RAD = Math.PI / 180;
 const UP = new THREE.Vector3(0, 1, 0);
 
-export const SIDE_COLOR = { L: 0x38bdf8, R: 0xfb923c, C: 0xe5e7eb };
-const BONE_COLOR = 0x9aa7bb;
+const THEMES = {
+  dark: { L: 0x38bdf8, R: 0xfb923c, C: 0xe5e7eb, bone: 0x9aa7bb, skull: 0xf1f5f9 },
+  light: { L: 0x0284c7, R: 0xea580c, C: 0x475569, bone: 0x7d8aa3, skull: 0xd5dbe8 },
+};
+export const SIDE_COLOR = THEMES.dark;
+const BONE_COLOR = THEMES.dark.bone;
 const HOVER_EMISSIVE = 0x7a6200;
 const SELECT_COLOR = 0xffe14d;
 /** NaN / non-numeric channel values count as 0 (rest); ±Infinity is left for the limits to clamp. */
@@ -100,6 +104,7 @@ export class Stickboy {
   /** Head ball + face, so you can tell which way the character looks. */
   _buildHead(object) {
     const skin = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.5 });
+    this._skin = skin;
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.115, 32, 20), skin);
     head.position.set(0, 0.125, 0);
     head.castShadow = true;
@@ -248,6 +253,18 @@ export class Stickboy {
     marker.material.color.set(sel ? SELECT_COLOR : marker.userData.baseColor);
     marker.material.emissive.set(hov || sel ? HOVER_EMISSIVE : 0x000000);
     marker.scale.setScalar(sel ? 1.5 : hov ? 1.35 : 1);
+  }
+
+  /** Recolour the figure for 'dark' or 'light' backgrounds. */
+  setTheme(theme) {
+    const t = THEMES[theme] ?? THEMES.dark;
+    for (const { def, marker, bone } of this.nodes.values()) {
+      marker.userData.baseColor.set(t[def.side]);
+      this._paint(def.name);
+      bone?.material.color.set(t.bone);
+    }
+    this.webs.material.color.set(t.bone);
+    this._skin.color.set(t.skull);
   }
 
   setBonesVisible(on) {
