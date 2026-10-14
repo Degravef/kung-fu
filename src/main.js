@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Stickboy } from './skeleton/Stickboy.js';
 import { POSES, lerpPose, easeInOut } from './poses.js';
 import { createUI } from './ui.js';
-import { detectLang, setLang, onLangChange, t, jointText } from './i18n/index.js';
+import { detectLang, setLang, onLangChange, t, jointText, sideLetter } from './i18n/index.js';
 import './style.css';
 
 const $ = (sel) => document.querySelector(sel);
@@ -251,13 +251,23 @@ controls.addEventListener('start', flyCancel);
 const labelLayer = $('#labels');
 const tooltip = $('#tooltip');
 const tags = new Map();
+/** Compact translated tag text, e.g. "Épaule (D)", "Index · bout du doigt (G)". */
+function tagText(name) {
+  const def = stickboy.nodes.get(name).def;
+  const short = jointText(def).short;
+  return def.side === 'C' ? short : `${short} (${sideLetter(def.side)})`;
+}
+
 for (const [name] of stickboy.nodes) {
-  const tag = Object.assign(document.createElement('span'), { className: 'tag', textContent: name, hidden: true });
+  const tag = Object.assign(document.createElement('span'), { className: 'tag', textContent: tagText(name), hidden: true });
   labelLayer.append(tag);
   tags.set(name, tag);
 }
 const selTag = Object.assign(document.createElement('span'), { className: 'tag sel', hidden: true });
 labelLayer.append(selTag);
+onLangChange(() => {
+  for (const [name, tag] of tags) tag.textContent = tagText(name);
+});
 
 /** Project a joint to stage pixels; null if it's behind the camera. */
 function screenOf(name) {
@@ -283,7 +293,7 @@ function updateLabels() {
   }
 
   if (selected && selected !== hovered) {
-    selTag.textContent = stickboy.nodes.get(selected).def.name;
+    selTag.textContent = tagText(selected);
     placeTag(selTag, selected, 0, -14);
   } else {
     selTag.hidden = true;
