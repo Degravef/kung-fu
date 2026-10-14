@@ -150,6 +150,27 @@ export class Stickboy {
     return clamped;
   }
 
+  /**
+   * Set only some joints: every channel of every joint in `names` is replaced by the value in
+   * `joints[name]` (missing = 0), all other joints keep their current values. Returns what was clamped.
+   */
+  setPartial(names, joints = {}) {
+    const clamped = [];
+    for (const name of names) {
+      const ch = this.values.get(name);
+      if (!ch) continue;
+      const given = joints[name] ?? {};
+      for (const d of this.nodes.get(name).def.dof) {
+        const want = num(given[d.channel]);
+        const got = Math.min(d.max, Math.max(d.min, want));
+        if (got !== want) clamped.push({ joint: name, channel: d.channel, requested: want, applied: got });
+        ch[d.channel] = got;
+      }
+    }
+    this.update();
+    return clamped;
+  }
+
   /** Dense copy of the current pose (every channel present). */
   getPose() {
     const joints = {};

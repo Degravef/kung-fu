@@ -65,6 +65,8 @@ export const sideLetter = (side) => dict().sideLetter?.[side] ?? side;
 export const channelLabel = (englishLabel) => dict().channels?.[englishLabel] ?? englishLabel;
 export const regionName = (region) => dict().regions?.[region] ?? region;
 export const partName = (part) => dict().parts?.[part] ?? part;
+/** Display name of a saved position: built-ins are translated by id, user names are shown as typed. */
+export const positionName = (pos) => (pos.builtin ? dict().positionNames?.[pos.id] ?? pos.name : pos.name);
 export const moveLabel = (key, fallback) => dict().moves?.[key] ?? fallback;
 export const poseLabel = (key, fallback) => dict().poses?.[key] ?? fallback;
 

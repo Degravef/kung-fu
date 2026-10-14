@@ -2,13 +2,7 @@ import { JOINT_DEFS, REGIONS, childrenOf } from './skeleton/jointDefs.js';
 import { POSES, POSE_ORDER, MOVES, MOVE_ORDER } from './poses.js';
 import { LANGS, getLang, setLang, onLangChange, t, formatNumber, channelLabel, sideLetter, regionName, partName, poseLabel, moveLabel, jointText } from './i18n/index.js';
 
-const $ = (sel, root = document) => root.querySelector(sel);
-
-function h(tag, props = {}, ...kids) {
-  const node = Object.assign(document.createElement(tag), props);
-  node.append(...kids.flat().filter((k) => k != null));
-  return node;
-}
+import { $, h } from './dom.js';
 
 const VIEWS = ['body', 'head', 'handL', 'handR', 'feet'];
 

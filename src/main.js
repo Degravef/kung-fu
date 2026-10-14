@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Stickboy } from './skeleton/Stickboy.js';
 import { POSES, MOVES, lerpPose, easeInOut } from './poses.js';
 import { createUI } from './ui.js';
+import { createPositionsPanel } from './positionsUI.js';
 import { detectLang, setLang, onLangChange, t, jointText, sideLetter } from './i18n/index.js';
 import './style.css';
 
@@ -169,6 +170,15 @@ const VIEWS = {
 
 /* ---------------------------------------------------------------- UI */
 
+/** The user changed the figure by hand (slider, saved position…): stop any running animation. */
+function handEdited() {
+  anim = null;
+  queue = [];
+  currentPoseKey = null;
+  ui.setActivePose(null);
+  ui.setActiveMove(null);
+}
+
 const ui = createUI(stickboy, {
   select,
   hover,
@@ -176,18 +186,19 @@ const ui = createUI(stickboy, {
   move: (key) => playMove(key),
   view: (key) => flyTo(VIEWS[key]),
   focus: (name) => flyTo(() => [pos(name), focusDistance(name)]),
-  edited() {
-    anim = null; // the user took over
-    queue = [];
-    currentPoseKey = null;
-    ui.setActivePose(null);
-    ui.setActiveMove(null);
-  },
+  edited: handEdited,
   toggleLabels: (on) => (showAllLabels = on),
   toggleBones: (on) => stickboy.setBonesVisible(on),
   toggleGround(on) {
     stickboy.autoGround = on;
     stickboy.update();
+  },
+});
+
+createPositionsPanel(stickboy, {
+  applied() {
+    handEdited();
+    ui.sync();
   },
 });
 

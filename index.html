@@ -11,9 +11,14 @@
         <header class="panel-head">
           <h1 data-i18n="tree_title">Stickboy</h1>
           <p class="muted" data-i18n="tree_intro">Every joint has a name. Hover or select one here or in the 3D view.</p>
+          <div class="tabs" role="tablist" data-i18n-attr="aria-label:tabs_label">
+            <button class="tab" role="tab" type="button" data-tab="joints" aria-selected="true" data-i18n="tab_joints">Joints</button>
+            <button class="tab" role="tab" type="button" data-tab="positions" aria-selected="false" tabindex="-1" data-i18n="tab_positions">Positions</button>
+          </div>
           <input id="search" type="search" data-i18n-attr="placeholder:search_placeholder,aria-label:search_label" autocomplete="off" />
         </header>
         <div id="tree-body"></div>
+        <div id="positions" class="positions" hidden></div>
       </aside>
 
       <main id="stage">

@@ -75,6 +75,29 @@ summary small { color: var(--muted); font-weight: 400; margin-left: 4px; }
 .row[aria-current='true'] { background: var(--sel-row); box-shadow: inset 3px 0 var(--accent); }
 .row-label { min-width: 0; overflow-wrap: anywhere; }
 .no-match { padding: 14px; }
+
+/* ---- tabs + positions */
+.tabs { display: flex; gap: 4px; margin: 0 0 10px; }
+.tab { flex: 1; padding: 6px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel-2); cursor: pointer; font-size: 13px; }
+.tab[aria-selected='true'] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+.positions { padding: 12px 14px 20px; }
+.positions h3 { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 14px 0 6px; }
+.pos-intro { font-size: 12px; margin-bottom: 4px; }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.take { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; }
+.pos-save { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.pos-name-input { flex: 1 1 8rem; min-width: 0; padding: 6px 9px; border-radius: 7px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; }
+.btn.primary { border-color: var(--accent); }
+.btn.mini { padding: 2px 7px; font-size: 12px; }
+.btn.ghost { background: none; }
+.pos-list { list-style: none; margin: 0; padding: 0; }
+.pos-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.pos-name { min-width: 0; overflow-wrap: anywhere; }
+.pos-actions { display: flex; gap: 3px; flex: none; }
+.pos-io { display: flex; gap: 6px; margin-top: 16px; }
+.pos-status { margin-top: 12px; font-size: 12px; }
+.pos-status ul { margin: 4px 0 0; padding-left: 18px; color: var(--muted); }
+.warn { color: var(--R); font-size: 12px; margin-top: 10px; }
 .row code { color: var(--muted); font-size: 11px; }
 
 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--C); }

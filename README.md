@@ -39,6 +39,28 @@ roundhouse: { label: 'Roundhouse kick', from: 'guard',
 
 Each step blends channel-by-channel from the previous pose (`lerpPose(a, b, t)`). Moving a slider by hand cancels a running move.
 
+## Saved positions (hands, arms, legs, torso)
+
+The **Positions** tab (left panel) saves the current position of one body part and applies it later.
+Hands, arms and legs share **one list for both sides**: a position is stored with side-less joint names
+(`shoulder`, `index_mcp`) and applied to Left, Right or both — the right side is the exact mirror image,
+because a channel value means the same thing on both sides. The torso is on the centre line and has no side.
+
+- Your positions live in the browser (`localStorage`); built-in examples are read-only.
+- **Export…** writes `kungfu-positions.json`, **Import…** merges a file back (same `id` = updated, names kept unique).
+- Imports are validated: broken positions are skipped with the exact path of the problem
+  (`positions.hand[1].joints.elbow: not a joint of the hand (valid: …)`), out-of-range degrees are clamped and reported.
+
+```json
+{ "format": "kungfu-positions", "version": 1,
+  "positions": {
+    "hand": [ { "id": "user:k3x9", "name": "Claw", "joints": { "index_mcp": { "flex": 40, "spread": 5 } } } ],
+    "arm": [], "leg": [], "torso": []
+  } }
+```
+
+Code: `src/positions.js` (pure data + validation, runs in Node), `src/positionsUI.js` (the tab).
+
 ## Good to know
 
 - Finger joints are tiny, so picking is done in screen space (nearest joint under the cursor, front-most wins) rather than by ray-casting. Use the **Left hand / Right hand** views or double-click a joint to fly to it.
