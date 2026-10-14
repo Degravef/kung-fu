@@ -75,15 +75,16 @@ function applyPose(p) {
   ui.sync();
 }
 
-function flyTo(target, distance, duration = 0.7) {
+/** `where` is [target, distance] or a function returning it (re-read every frame, so the camera follows a moving pose). */
+function flyTo(where, distance, duration = 0.7) {
   dirTmp.copy(camera.position).sub(controls.target).normalize();
   focus = {
     t: 0,
     dur: duration,
+    dir: dirTmp.clone(),
+    where: typeof where === 'function' ? where : () => [where, distance],
     fromTarget: controls.target.clone(),
-    toTarget: target.clone(),
     fromPos: camera.position.clone(),
-    toPos: target.clone().addScaledVector(dirTmp, distance),
   };
 }
 
@@ -101,8 +102,8 @@ const ui = createUI(stickboy, {
   select,
   hover,
   pose: (key) => playPose(key),
-  view: (key) => flyTo(...VIEWS[key]()),
-  focus: (name) => flyTo(pos(name), focusDistance(name)),
+  view: (key) => flyTo(VIEWS[key]),
+  focus: (name) => flyTo(() => [pos(name), focusDistance(name)]),
   edited() {
     anim = null; // the user took over
     ui.setActivePose(null);
@@ -118,12 +119,14 @@ const ui = createUI(stickboy, {
 const focusDistance = (name) => Math.max(0.35, stickboy.nodes.get(name).def.radius * 20);
 
 function select(name) {
+  if (name && !stickboy.nodes.has(name)) return;
   selected = name;
   stickboy.setSelected(name);
   ui.select(name);
 }
 
 function hover(name) {
+  if (name && !stickboy.nodes.has(name)) return;
   hovered = name;
   stickboy.setHover(name);
   ui.hover(name);
@@ -141,20 +144,28 @@ function pickJoint(clientX, clientY) {
   const py = clientY - rect.top;
   const pxPerMetre = rect.height / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
   let best = null;
-  let bestScore = 1;
-  for (const [name, { def }] of stickboy.nodes) {
-    stickboy.worldPosition(name, world);
-    const dist = world.distanceTo(camera.position);
-    const radiusPx = (def.radius * pxPerMetre) / dist;
-    world.project(camera);
-    if (world.z > 1) continue;
-    const d = Math.hypot((world.x * 0.5 + 0.5) * rect.width - px, (-world.y * 0.5 + 0.5) * rect.height - py);
+  let bestKey = null;
+  // Candidate = a joint ball near the cursor. Balls the cursor is actually ON beat
+  // merely-near ones, and among those the one closest to the camera wins (so a big
+  // joint behind a hand can't steal the click from the finger in front of it).
+  const consider = (name, centre, radius) => {
+    const dist = centre.distanceTo(camera.position);
+    const radiusPx = (radius * pxPerMetre) / dist;
+    centre.project(camera);
+    if (centre.z > 1) return;
+    const d = Math.hypot((centre.x * 0.5 + 0.5) * rect.width - px, (-centre.y * 0.5 + 0.5) * rect.height - py);
     const score = d / (radiusPx * 1.3 + 8);
-    if (score < bestScore) {
-      bestScore = score;
+    if (score >= 1) return;
+    const key = d <= radiusPx ? [0, dist] : [1, score];
+    if (!bestKey || key[0] < bestKey[0] || (key[0] === bestKey[0] && key[1] < bestKey[1])) {
+      bestKey = key;
       best = name;
     }
-  }
+  };
+  for (const [name, { def }] of stickboy.nodes) consider(name, stickboy.worldPosition(name, world), def.radius);
+  // The skull is drawn as a big ball above the 'head' joint: clicking it should pick 'head' too.
+  const head = stickboy.nodes.get('head').object;
+  consider('head', world.set(0, 0.125, 0).applyMatrix4(head.matrixWorld), 0.115);
   return best;
 }
 
@@ -173,7 +184,7 @@ canvas.addEventListener('pointerup', (e) => {
 });
 canvas.addEventListener('dblclick', (e) => {
   const name = pickJoint(e.clientX, e.clientY);
-  if (name) flyTo(pos(name), focusDistance(name));
+  if (name) flyTo(() => [pos(name), focusDistance(name)]);
 });
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && document.activeElement?.type !== 'search') select(null);
@@ -209,8 +220,11 @@ function placeTag(el, name, dx = 0, dy = 0) {
 }
 
 function updateLabels() {
+  // Finger labels only make sense once you're close; at body distance they'd be a smear.
+  const close = camera.position.distanceTo(controls.target) < 1.6;
   for (const [name, tag] of tags) {
-    if (showAllLabels && name !== selected) placeTag(tag, name, 0, -9);
+    const legible = close || !stickboy.nodes.get(name).def.region.endsWith('hand');
+    if (showAllLabels && name !== selected && legible) placeTag(tag, name, 0, -9);
     else tag.hidden = true;
   }
 
@@ -229,7 +243,14 @@ function updateLabels() {
       Object.assign(document.createElement('b'), { textContent: def.label }),
       Object.assign(document.createElement('small'), { textContent: def.name }),
     );
-    tooltip.style.transform = `translate(${s.x + 16}px, ${s.y - 12}px)`;
+    const tw = tooltip.offsetWidth;
+    const th = tooltip.offsetHeight;
+    let x = s.x + 16;
+    let y = s.y - 12;
+    if (x + tw > viewport.clientWidth - 4) x = s.x - 16 - tw; // flip to the left of the joint
+    if (y < 4) y = s.y + 16;
+    if (y + th > viewport.clientHeight - 4) y = viewport.clientHeight - 4 - th;
+    tooltip.style.transform = `translate(${Math.max(4, x)}px, ${y}px)`;
   }
 }
 
@@ -237,6 +258,7 @@ function updateLabels() {
 
 function resize() {
   const { clientWidth: w, clientHeight: h } = viewport;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // also follows browser zoom / monitor changes
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
@@ -258,12 +280,14 @@ function frame(now) {
   if (focus) {
     focus.t = Math.min(1, focus.t + dt / focus.dur);
     const k = easeInOut(focus.t);
-    controls.target.lerpVectors(focus.fromTarget, focus.toTarget, k);
-    camera.position.lerpVectors(focus.fromPos, focus.toPos, k);
+    const [target, dist] = focus.where();
+    controls.target.lerpVectors(focus.fromTarget, target, k);
+    camera.position.lerpVectors(focus.fromPos, tmp.copy(target).addScaledVector(focus.dir, dist), k);
     if (focus.t >= 1) focus = null;
   }
 
   controls.update();
+  camera.updateMatrixWorld(); // labels project with the camera as it is NOW, not last frame
   updateLabels();
   ui.tick();
   renderer.render(scene, camera);

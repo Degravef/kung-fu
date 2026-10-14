@@ -18,6 +18,10 @@ export const SIDE_COLOR = { L: 0x38bdf8, R: 0xfb923c, C: 0xe5e7eb };
 const BONE_COLOR = 0x9aa7bb;
 const HOVER_EMISSIVE = 0x7a6200;
 const SELECT_COLOR = 0xffe14d;
+/** NaN / non-numeric channel values count as 0 (rest); ±Infinity is left for the limits to clamp. */
+const num = (v) => (Number.isNaN(Number(v)) ? 0 : Number(v));
+/** Root offsets must be finite or the whole skeleton turns to NaN. */
+const finite = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
 export class Stickboy {
   constructor(defs = JOINT_DEFS) {
@@ -130,13 +134,13 @@ export class Stickboy {
     for (const [name, ch] of this.values) {
       const given = pose.joints?.[name] ?? {};
       for (const d of this.nodes.get(name).def.dof) {
-        const want = given[d.channel] ?? 0;
+        const want = num(given[d.channel]);
         const got = Math.min(d.max, Math.max(d.min, want));
         if (got !== want) clamped.push({ joint: name, channel: d.channel, requested: want, applied: got });
         ch[d.channel] = got;
       }
     }
-    Object.assign(this.rootOffset, { x: 0, z: 0, lift: 0 }, pose.root);
+    this.rootOffset = { x: finite(pose.root?.x), z: finite(pose.root?.z), lift: finite(pose.root?.lift) };
     this.update();
     return clamped;
   }
@@ -151,7 +155,7 @@ export class Stickboy {
   setChannel(name, channel, degrees) {
     const d = this.nodes.get(name)?.def.dof.find((c) => c.channel === channel);
     if (!d) return;
-    this.values.get(name)[channel] = Math.min(d.max, Math.max(d.min, degrees));
+    this.values.get(name)[channel] = Math.min(d.max, Math.max(d.min, num(degrees)));
     this.update();
   }
 
@@ -181,7 +185,7 @@ export class Stickboy {
     if (this.autoGround) {
       let minY = Infinity;
       for (const n of GROUND_CONTACTS) minY = Math.min(minY, this.worldPosition(n, this._v).y);
-      drop = minY;
+      drop = minY; // contact node centres touch the floor; the 1 cm marker balls sink in slightly
     }
     pelvis.object.position.y = restY - drop + this.rootOffset.lift;
     this.root.updateMatrixWorld(true);
@@ -215,7 +219,7 @@ export class Stickboy {
   /* --------------------------------------------------------------- display */
 
   setHover(name) {
-    if (name === this.hovered) return;
+    if (name === this.hovered || (name && !this.nodes.has(name))) return;
     const prev = this.hovered;
     this.hovered = name;
     if (prev) this._paint(prev);
@@ -223,7 +227,7 @@ export class Stickboy {
   }
 
   setSelected(name) {
-    if (name === this.selected) return;
+    if (name === this.selected || (name && !this.nodes.has(name))) return;
     const prev = this.selected;
     this.selected = name;
     if (prev) this._paint(prev);

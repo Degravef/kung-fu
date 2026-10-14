@@ -16,7 +16,7 @@ const HAND_SHAPES = {
     mcp: 88,
     pip: 100,
     dip: 60,
-    thumb: { cmc: { spread: 8, flex: 38, twist: -8 }, mcp: { flex: 30 }, ip: { flex: 30 } },
+    thumb: { cmc: { spread: -20, flex: 20 }, mcp: { flex: 35 }, ip: { flex: 80 } },
   },
   open: {
     mcp: 0,
@@ -30,7 +30,7 @@ const HAND_SHAPES = {
     pip: 0,
     dip: 0,
     spread: { index: -3, middle: 0, ring: -3, pinky: -3 },
-    thumb: { cmc: { flex: 38 }, mcp: { flex: 30 }, ip: { flex: 5 } },
+    thumb: { cmc: { spread: -20, flex: 0 }, mcp: { flex: 20 }, ip: { flex: 10 } },
   },
 };
 
@@ -81,8 +81,8 @@ export const POSES = {
   guard: pose('Ready stance', {
     spine: { flex: 5, twist: -8 },
     chest: { flex: 6, twist: -10 },
-    neck: { flex: -6 },
-    head: { flex: -6 },
+    neck: { flex: -6, twist: 9 },
+    head: { flex: -6, twist: 9 },
     ...guardLegs,
     ...guardArms,
     ...hand('L', 'fist'),
@@ -90,14 +90,14 @@ export const POSES = {
   }),
 
   punch: pose('Straight punch', {
-    spine: { flex: 5, twist: 20 },
-    chest: { flex: 6, twist: 24 },
-    neck: { flex: -6, twist: -20 },
-    head: { flex: -6, twist: -20 },
+    spine: { flex: 5, twist: 8 },
+    chest: { flex: 6, twist: 10 },
+    neck: { flex: -6, twist: -9 },
+    head: { flex: -6, twist: -9 },
     ...guardLegs,
-    shoulder_R: { flex: 92, abd: -4 },
+    shoulder_R: { flex: 98, abd: -4 },
     elbow_R: { flex: 4, twist: -90 },
-    shoulder_L: { flex: 50, abd: -8, twist: 10 },
+    shoulder_L: { flex: 50, abd: -8, twist: -30 },
     elbow_L: { flex: 125 },
     ...hand('L', 'fist'),
     ...hand('R', 'fist'),
@@ -111,8 +111,9 @@ export const POSES = {
     hip_R: { flex: 88, abd: 3 },
     knee_R: { flex: 8 },
     ankle_R: { flex: -25 },
-    hip_L: { flex: 0, abd: 4 },
+    hip_L: { flex: 0, abd: -6 }, // supporting leg angles inward so the foot sits under the body
     knee_L: { flex: 12 },
+    ankle_L: { flex: -12 },
     ...guardArms,
     shoulder_R: { flex: 55, abd: -10 },
     elbow_R: { flex: 110 },
@@ -123,6 +124,8 @@ export const POSES = {
   knife: pose('Knife-hand block', {
     spine: { flex: 4, twist: -10 },
     chest: { flex: 4, twist: -12 },
+    neck: { flex: -4, twist: 11 },
+    head: { flex: -4, twist: 11 },
     ...guardLegs,
     shoulder_L: { flex: 62, abd: 22 },
     elbow_L: { flex: 95, twist: -35 },

@@ -37,7 +37,7 @@ export function createUI(stickboy, actions) {
       'button',
       { className: 'row', type: 'button', title: def.label },
       h('i', { className: `dot side-${def.side} ${def.kind}` }),
-      h('span', { className: 'row-label', textContent: text }),
+      h('span', { className: 'row-label', textContent: text, title: def.label }),
       h('code', { textContent: def.name }),
     );
     row.addEventListener('click', () => actions.select(def.name));
@@ -47,8 +47,11 @@ export function createUI(stickboy, actions) {
     return row;
   }
 
+  const noMatch = h('p', { className: 'muted no-match', textContent: 'No joint matches your search.', hidden: true });
+
   function buildTree() {
     const body = $('#tree-body');
+    body.append(noMatch);
     for (const region of REGIONS) {
       const defs = JOINT_DEFS.filter((d) => d.region === region);
       const isHand = region.endsWith('hand');
@@ -89,20 +92,22 @@ export function createUI(stickboy, actions) {
     for (const g of groups) {
       let visible = 0;
       for (const { def, row } of g.rows) {
-        const hit = !q || `${def.label} ${def.name}`.toLowerCase().includes(q);
+        const hit = !q || `${def.label} ${def.name} ${def.region} ${def.part ?? ''}`.toLowerCase().includes(q);
         row.hidden = !hit;
         visible += hit;
       }
       g.details.hidden = visible === 0;
       if (q && visible) g.details.open = true;
     }
+    noMatch.hidden = !q || groups.some((g) => !g.details.hidden);
   }
 
   /* ------------------------------------------------------- inspector */
 
   function jointLink(name, current = false) {
     const def = stickboy.nodes.get(name).def;
-    const b = h('button', { type: 'button', className: `link${current ? ' current' : ''}`, textContent: def.short, title: name });
+    const text = def.side === 'C' ? def.short : `${def.short} (${def.side})`;
+    const b = h('button', { type: 'button', className: `link${current ? ' current' : ''}`, textContent: text, title: def.label });
     if (!current) b.addEventListener('click', () => actions.select(name));
     return b;
   }
@@ -231,6 +236,17 @@ export function createUI(stickboy, actions) {
     }
   }
 
+  /** Scroll the joint list (not the page) just enough to show `row`, clear of the sticky header. */
+  function scrollRowIntoView(row) {
+    const panel = $('#tree');
+    const head = $('.panel-head');
+    const stuck = getComputedStyle(head).position === 'sticky' ? head.offsetHeight : 0;
+    const r = row.getBoundingClientRect();
+    const c = panel.getBoundingClientRect();
+    if (r.top < c.top + stuck) panel.scrollTop -= c.top + stuck - r.top + 8;
+    else if (r.bottom > c.bottom) panel.scrollTop += r.bottom - c.bottom + 8;
+  }
+
   /* ----------------------------------------------------------- public */
 
   buildTree();
@@ -246,7 +262,7 @@ export function createUI(stickboy, actions) {
         const row = rows.get(name);
         row.setAttribute('aria-current', 'true');
         for (let d = row.parentElement; d && d.id !== 'tree-body'; d = d.parentElement) if (d.tagName === 'DETAILS') d.open = true;
-        row.scrollIntoView({ block: 'nearest' });
+        scrollRowIntoView(row);
       }
       renderInspector();
     },

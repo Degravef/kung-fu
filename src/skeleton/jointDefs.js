@@ -22,6 +22,10 @@
  * means one channel value has the SAME meaning on both sides:
  * `{ shoulder_L: { abd: 90 }, shoulder_R: { abd: 90 } }` raises both arms out
  * to the sides symmetrically.
+ *
+ * POLE: shoulder/hip use flex·abd·twist Euler order, so at abd = 90° the arm/leg lies
+ * on the flex axis and `flex` only spins it. Reach overhead with flex (up to 180°)
+ * rather than abd > 90°; for a raised side arm use abd 90 and put the rest in `twist`.
  */
 
 /** Hands are drawn larger than life so that finger joints are readable. */
@@ -72,22 +76,22 @@ const centre = [
   node('spine', 'Lower spine (lumbar)', 'pelvis', [0, 0.1, 0], {
     radius: 0.032,
     boneRadius: 0.02,
-    dof: spineDof([30, 45], 30, 45),
+    dof: spineDof([15, 35], 30, 30),
   }),
   node('chest', 'Chest (upper spine)', 'spine', [0, 0.22, 0], {
     radius: 0.038,
     boneRadius: 0.02,
-    dof: spineDof([25, 35], 25, 45),
+    dof: spineDof([15, 25], 25, 40),
   }),
   node('neck', 'Neck', 'chest', [0, 0.18, 0], {
     radius: 0.026,
     boneRadius: 0.016,
-    dof: spineDof([45, 45], 35, 70),
+    dof: spineDof([45, 45], 35, 50),
   }),
   node('head', 'Head', 'neck', [0, 0.1, 0], {
     radius: 0.03,
     boneRadius: 0.016,
-    dof: spineDof([40, 40], 30, 60),
+    dof: spineDof([40, 40], 30, 40),
   }),
 ];
 
@@ -98,25 +102,25 @@ const leg = (o) => ({ region: 'Left leg', ...o });
 
 const leftBody = [
   // ---- arm
-  node('clavicle_L', 'Left clavicle (collar)', 'chest', [0.03, 0.17, 0], arm({
+  node('clavicle_L', 'Left clavicle (collar)', 'chest', [0.05, 0.17, 0], arm({
     radius: 0.022,
     dof: [
       D('elev', 'z', +1, -15, 30, 'Shrug up (+) / down (−)'),
       D('protract', 'y', -1, -20, 20, 'Shoulder forward (+) / back (−)'),
     ],
   })),
-  node('shoulder_L', 'Left shoulder', 'clavicle_L', [0.16, -0.02, 0], arm({
+  node('shoulder_L', 'Left shoulder', 'clavicle_L', [0.14, -0.02, 0], arm({
     radius: 0.036,
     dof: [
       D('flex', 'x', -1, -60, 180, 'Arm forward (+) / back (−)'),
-      D('abd', 'z', +1, -60, 180, 'Arm out to the side (+) / across body (−)'),
+      D('abd', 'z', +1, -60, 90, 'Arm out to the side (+) / across body (−)'),
       D('twist', 'y', +1, -90, 90, 'Rotate outward (+) / inward (−)'),
     ],
   })),
   node('elbow_L', 'Left elbow', 'shoulder_L', [0, -0.3, 0], arm({
     radius: 0.03,
     dof: [
-      D('flex', 'x', -1, 0, 150, 'Bend (forearm forward and up)'),
+      D('flex', 'x', -1, 0, 150, 'Bend (+): forearm forward and up (0 = straight)'),
       D('twist', 'y', +1, -90, 90, 'Forearm: palm turns up (+) / down (−)'),
     ],
   })),
@@ -140,7 +144,7 @@ const leftBody = [
   })),
   node('knee_L', 'Left knee', 'hip_L', [0, -0.43, 0], leg({
     radius: 0.03,
-    dof: [D('flex', 'x', +1, 0, 150, 'Bend (heel toward butt)')],
+    dof: [D('flex', 'x', +1, 0, 150, 'Bend (+): heel toward butt (0 = straight)')],
   })),
   node('ankle_L', 'Left ankle', 'knee_L', [0, -0.39, 0], leg({
     radius: 0.026,
@@ -149,14 +153,14 @@ const leftBody = [
       D('inv', 'z', -1, -25, 25, 'Sole turns in (+) / out (−)'),
     ],
   })),
-  node('heel_L', 'Left heel', 'ankle_L', [0, -0.07, -0.05], leg({ radius: 0.014, boneRadius: 0.012 })),
-  node('toe_L', 'Left ball of foot (toe joint)', 'ankle_L', [0, -0.06, 0.13], leg({
+  node('heel_L', 'Left heel', 'ankle_L', [0, -0.08, -0.05], leg({ radius: 0.014, boneRadius: 0.012 })),
+  node('toe_L', 'Left ball of foot (toe joint)', 'ankle_L', [0, -0.08, 0.13], leg({
     short: 'Ball of foot (toe joint)',
     radius: 0.02,
     boneRadius: 0.012,
-    dof: [D('flex', 'x', +1, -30, 60, 'Toes curl down (+) / up (−)')],
+    dof: [D('flex', 'x', +1, -70, 40, 'Toes curl down (+) / up (−)')],
   })),
-  node('toe_tip_L', 'Left toe tip', 'toe_L', [0, -0.02, 0.07], leg({ radius: 0.013, boneRadius: 0.011 })),
+  node('toe_tip_L', 'Left toe tip', 'toe_L', [0, 0, 0.07], leg({ radius: 0.013, boneRadius: 0.011 })),
 ];
 
 /* -------------------------------------------------------------- left hand */
@@ -164,7 +168,7 @@ const leftBody = [
 /** One finger = 3 joints + a tip. Dimensions are for a real hand, then × HAND_SCALE. */
 const FINGERS = [
   { id: 'index', name: 'Index', mcp: [0, -0.085, 0.032], seg: [0.04, 0.022, 0.019], spreadSign: -1 },
-  { id: 'middle', name: 'Middle', mcp: [0, -0.09, 0.011], seg: [0.044, 0.027, 0.02], spreadSign: -1 },
+  { id: 'middle', name: 'Middle', mcp: [0, -0.09, 0.011], seg: [0.044, 0.027, 0.02], spreadSign: -1, spreadLabel: 'Lean toward index (+) / toward ring (−)' },
   { id: 'ring', name: 'Ring', mcp: [0, -0.085, -0.01], seg: [0.041, 0.025, 0.019], spreadSign: +1 },
   { id: 'pinky', name: 'Pinky', mcp: [0, -0.075, -0.03], seg: [0.032, 0.017, 0.017], spreadSign: +1 },
 ];
@@ -185,7 +189,7 @@ function leftHand() {
         radius: 0.011,
         dof: [
           D('flex', 'z', -1, -20, 90, 'Curl toward palm (+) / extend (−)'),
-          D('spread', 'x', f.spreadSign, -20, 20, 'Spread apart (+) / together (−)'),
+          D('spread', 'x', f.spreadSign, -20, 20, f.spreadLabel ?? 'Spread apart (+) / together (−)'),
         ],
       })),
       node(`${f.id}_pip_L`, `Left ${f.id} · middle knuckle (PIP)`, `${f.id}_mcp_L`, v(0, -f.seg[0], 0), hand({
