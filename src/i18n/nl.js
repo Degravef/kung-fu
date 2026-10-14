@@ -132,6 +132,7 @@ export default {
     'Leg out to the side (+) / across (−)': 'Been zijwaarts (+) / gekruist (−)',
     'Turn out (+) / in (−)': 'Naar buiten (+) / naar binnen (−) draaien',
     'Bend (+): heel toward butt (0 = straight)': 'Buigen (+): hiel naar de bil (0 = gestrekt)',
+    'Foot points out (+) / in (−)': 'Voet gericht naar buiten (+) / naar binnen (−)',
     'Toes down (+) / up (−)': 'Tenen omlaag (+) / omhoog (−)',
     'Sole turns in (+) / out (−)': 'Voetzool naar binnen (+) / naar buiten (−)',
     'Toes curl down (+) / up (−)': 'Tenen omlaag krullen (+) / omhoog (−)',

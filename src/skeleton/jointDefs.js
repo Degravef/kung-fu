@@ -149,6 +149,8 @@ const leftBody = [
   node('ankle_L', 'Left ankle', 'knee_L', [0, -0.39, 0], leg({
     radius: 0.026,
     dof: [
+      // outermost: turns the whole foot about the shin's axis, so it can point elsewhere than the knee
+      D('twist', 'y', +1, -60, 60, 'Foot points out (+) / in (−)'),
       D('flex', 'x', +1, -30, 50, 'Toes down (+) / up (−)'),
       D('inv', 'z', -1, -25, 25, 'Sole turns in (+) / out (−)'),
     ],

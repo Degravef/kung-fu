@@ -138,6 +138,7 @@ export default {
     'Leg out to the side (+) / across (−)': 'Jambe écartée sur le côté (+) / croisée (−)',
     'Turn out (+) / in (−)': 'Rotation vers l’extérieur (+) / l’intérieur (−)',
     'Bend (+): heel toward butt (0 = straight)': 'Flexion (+) : talon vers la fesse (0 = tendue)',
+    'Foot points out (+) / in (−)': 'Pied orienté vers l’extérieur (+) / l’intérieur (−)',
     'Toes down (+) / up (−)': 'Orteils vers le bas (+) / le haut (−)',
     'Sole turns in (+) / out (−)': 'Plante du pied vers l’intérieur (+) / l’extérieur (−)',
     'Toes curl down (+) / up (−)': 'Orteils fléchis vers le bas (+) / relevés (−)',

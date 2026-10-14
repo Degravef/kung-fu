@@ -186,6 +186,7 @@ add('hip', 'abd', pos('knee'), 'knee', X, 'raises the leg OUT to the side (left 
 add('hip', 'twist', vec('heel', 'toe_tip'), 'heel->toe direction', X, 'turns the foot OUT (left foot toward +X)', 'turns the foot IN (toward the midline)');
 add('knee', 'flex', pos('ankle'), 'ankle', NZ, 'swings the shin BACKWARD (heel toward butt, -Z)', 'would hyper-extend (not allowed)');
 add('knee', 'flex', pos('heel'), 'heel', NZ, 'swings the heel BACKWARD (-Z)', 'would hyper-extend (not allowed)');
+add('ankle', 'twist', vec('heel', 'toe_tip'), 'heel->toe direction', X, 'points the foot OUT, away from the knee direction (left foot toward +X)', 'points the foot IN (toward the midline)');
 add('ankle', 'flex', pos('toe_tip'), 'toe tip', NY, 'points the toes DOWN (plantar flexion)', 'pulls the toes UP (dorsiflexion)');
 add('ankle', 'inv', pos('heel'), 'heel (a point below the ankle)', NX, 'turns the sole IN (below-ankle points move medially: left foot -X)', 'turns the sole OUT (+X)');
 add('toe', 'flex', pos('toe_tip'), 'toe tip', NY, 'curls the toes DOWN', 'lifts the toes UP');
@@ -967,4 +968,33 @@ describe('(6) joint extremes never produce NaN', () => {
       assert.deepEqual(nan, [], 'skeleton must stay finite');
     }
   });
+});
+
+describe('ankle twist: the foot can point somewhere other than the knee', () => {
+  const sbT = new Stickboy();
+  const dir = (pose, a, b) => {
+    sbT.setPose(pose);
+    return sbT.worldPosition(b).clone().sub(sbT.worldPosition(a));
+  };
+  const yawDeg = (v) => (Math.atan2(v.x, v.z) * 180) / Math.PI;
+  for (const side of ['L', 'R']) {
+    const out = side === 'L' ? 1 : -1; // outward = +X for the left foot, -X for the right
+    it(`ankle_${side}: twist +40 turns the foot ~40 deg outward while the knee and shin do not move`, () => {
+      const rest = yawDeg(dir({}, `heel_${side}`, `toe_tip_${side}`));
+      const kneeBefore = sbT.worldPosition(`knee_${side}`).toArray();
+      const turned = yawDeg(dir({ joints: { [`ankle_${side}`]: { twist: 40 } } }, `heel_${side}`, `toe_tip_${side}`));
+      assert.ok(Math.abs((turned - rest) * out - 40) < 1, `foot yaw changed by ${((turned - rest) * out).toFixed(1)} deg, expected 40 outward`);
+      assert.deepEqual(sbT.worldPosition(`knee_${side}`).toArray(), kneeBefore, 'knee must not move');
+    });
+    it(`ankle_${side}: twist is independent of the knee direction (knee turned out 30 deg, foot twisted back in 30 deg points straight ahead)`, () => {
+      const pose = { joints: { [`hip_${side}`]: { twist: 30 }, [`ankle_${side}`]: { twist: -30 } } };
+      const yaw = yawDeg(dir(pose, `heel_${side}`, `toe_tip_${side}`));
+      assert.ok(Math.abs(yaw) < 1, `foot should point straight ahead, yaw ${yaw.toFixed(1)}`);
+    });
+    it(`ankle_${side}: flex still pitches the foot after a twist (twist is outermost)`, () => {
+      const v = dir({ joints: { [`ankle_${side}`]: { twist: 45, flex: 30 } } }, `heel_${side}`, `toe_tip_${side}`);
+      assert.ok(v.y < -0.03, `toes should still point down, dy ${v.y.toFixed(3)}`);
+      assert.ok(v.x * out > 0.03, 'and still point outward');
+    });
+  }
 });
