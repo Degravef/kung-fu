@@ -7,42 +7,43 @@
   </head>
   <body>
     <div id="app">
-      <aside id="tree" class="panel" aria-label="Joint list">
+      <aside id="tree" class="panel" data-i18n-attr="aria-label:joint_list_label">
         <header class="panel-head">
-          <h1>Stickboy</h1>
-          <p class="muted">Every joint has a name. Hover or select one here or in the 3D view.</p>
-          <input id="search" type="search" placeholder="Search joints…" aria-label="Search joints" autocomplete="off" />
+          <h1 data-i18n="tree_title">Stickboy</h1>
+          <p class="muted" data-i18n="tree_intro">Every joint has a name. Hover or select one here or in the 3D view.</p>
+          <input id="search" type="search" data-i18n-attr="placeholder:search_placeholder,aria-label:search_label" autocomplete="off" />
         </header>
         <div id="tree-body"></div>
       </aside>
 
       <main id="stage">
         <div id="toolbar" class="bar">
-          <div class="group" role="group" aria-label="Camera views" id="views"></div>
+          <div class="group" role="group" data-i18n-attr="aria-label:views_label" id="views"></div>
           <div class="group toggles">
-            <label><input type="checkbox" id="t-labels" /> All labels</label>
-            <label><input type="checkbox" id="t-bones" checked /> Bones</label>
-            <label><input type="checkbox" id="t-ground" checked /> Auto-ground</label>
+            <label><input type="checkbox" id="t-labels" /> <span data-i18n="toggle_labels">All labels</span></label>
+            <label><input type="checkbox" id="t-bones" checked /> <span data-i18n="toggle_bones">Bones</span></label>
+            <label><input type="checkbox" id="t-ground" checked /> <span data-i18n="toggle_ground">Auto-ground</span></label>
           </div>
-          <button id="theme-toggle" class="btn theme-btn" type="button" aria-label="Switch colour theme"></button>
-          <div class="legend" aria-label="Colour legend">
-            <span><i class="dot side-L"></i>Left</span>
-            <span><i class="dot side-R"></i>Right</span>
-            <span><i class="dot side-C"></i>Centre</span>
+          <select id="lang-select" class="btn lang-select" data-i18n-attr="aria-label:lang_label,title:lang_label"></select>
+          <button id="theme-toggle" class="btn theme-btn" type="button" data-i18n-attr="aria-label:theme_aria"></button>
+          <div class="legend" data-i18n-attr="aria-label:legend_label">
+            <span><i class="dot side-L"></i><span data-i18n="legend_left">Left</span></span>
+            <span><i class="dot side-R"></i><span data-i18n="legend_right">Right</span></span>
+            <span><i class="dot side-C"></i><span data-i18n="legend_centre">Centre</span></span>
           </div>
         </div>
 
         <div id="viewport">
-          <canvas id="canvas" aria-label="3D stickboy. Drag to orbit, scroll to zoom."></canvas>
+          <canvas id="canvas" data-i18n-attr="aria-label:canvas_label"></canvas>
           <div id="labels" aria-hidden="true"></div>
           <div id="tooltip" role="tooltip" hidden></div>
-          <p id="hint" class="muted">Drag to orbit · scroll to zoom · right-drag to pan · click a joint to select · double-click to focus</p>
+          <p id="hint" class="muted" data-i18n="hint">Drag to orbit · scroll to zoom · right-drag to pan · click a joint to select · double-click to focus</p>
         </div>
 
-        <div id="posebar" class="bar" role="group" aria-label="Poses"></div>
+        <div id="posebar" class="bar" role="group" data-i18n-attr="aria-label:poses_label"></div>
       </main>
 
-      <aside id="inspector" class="panel" aria-label="Selected joint"></aside>
+      <aside id="inspector" class="panel" data-i18n-attr="aria-label:inspector_label"></aside>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>

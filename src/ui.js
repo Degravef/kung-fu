@@ -1,5 +1,6 @@
 import { JOINT_DEFS, REGIONS, childrenOf } from './skeleton/jointDefs.js';
 import { POSES, POSE_ORDER } from './poses.js';
+import { LANGS, getLang, setLang, onLangChange, t, formatNumber, channelLabel, sideLetter, regionName, partName, poseLabel, jointText } from './i18n/index.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -9,13 +10,7 @@ function h(tag, props = {}, ...kids) {
   return node;
 }
 
-const VIEWS = [
-  ['body', 'Full body'],
-  ['head', 'Head'],
-  ['handL', 'Left hand'],
-  ['handR', 'Right hand'],
-  ['feet', 'Feet'],
-];
+const VIEWS = ['body', 'head', 'handL', 'handR', 'feet'];
 
 /**
  * DOM side of the demo: joint tree, inspector (sliders), toolbar, pose bar.
@@ -33,12 +28,13 @@ export function createUI(stickboy, actions) {
   /* ------------------------------------------------------------ tree */
 
   function makeRow(def, inHandGroup) {
-    const text = inHandGroup ? (def.short.split(' · ')[1] ?? def.short) : def.short;
+    const j = jointText(def);
+    const text = inHandGroup ? j.detail : j.short;
     const row = h(
       'button',
-      { className: 'row', type: 'button', title: def.label },
+      { className: 'row', type: 'button', title: j.label },
       h('i', { className: `dot side-${def.side} ${def.kind}` }),
-      h('span', { className: 'row-label', textContent: text, title: def.label }),
+      h('span', { className: 'row-label', textContent: text, title: j.label }),
       h('code', { textContent: def.name }),
     );
     row.addEventListener('click', () => actions.select(def.name));
@@ -48,23 +44,31 @@ export function createUI(stickboy, actions) {
     return row;
   }
 
-  const noMatch = h('p', { className: 'muted no-match', textContent: 'No joint matches your search.', hidden: true });
+  const noMatch = h('p', { className: 'muted no-match', hidden: true });
 
+  /** (Re)build the joint list, keeping which groups were open and the current search. */
   function buildTree() {
     const body = $('#tree-body');
-    body.append(noMatch);
+    const open = new Set([...body.querySelectorAll('details[open]')].map((d) => d.dataset.key));
+    const firstBuild = !body.firstChild;
+    body.replaceChildren(noMatch);
+    noMatch.textContent = t('no_match');
+    rows.clear();
+    groups.length = 0;
     for (const region of REGIONS) {
       const defs = JOINT_DEFS.filter((d) => d.region === region);
       const isHand = region.endsWith('hand');
-      const details = h('details', { open: region === 'Body' });
-      details.append(h('summary', {}, region, h('small', { textContent: `${defs.length}` })));
+      const details = h('details', { open: firstBuild ? region === 'Body' : open.has(region) });
+      details.dataset.key = region;
+      details.append(h('summary', {}, regionName(region), h('small', { textContent: `${defs.length}` })));
       const entry = { details, rows: [] };
 
       if (isHand) {
         for (const part of [...new Set(defs.map((d) => d.part))]) {
-          const sub = h('details', { open: false });
+          const sub = h('details', { open: open.has(`${region}/${part}`) });
+          sub.dataset.key = `${region}/${part}`;
           const partDefs = defs.filter((d) => d.part === part);
-          sub.append(h('summary', {}, part));
+          sub.append(h('summary', {}, partName(part)));
           const subEntry = { details: sub, rows: [] };
           for (const d of partDefs) {
             const r = makeRow(d, true);
@@ -86,14 +90,16 @@ export function createUI(stickboy, actions) {
       groups.push(entry);
     }
 
-    $('#search').addEventListener('input', (e) => filter(e.target.value.trim().toLowerCase()));
+    const q = $('#search').value.trim().toLowerCase();
+    if (q) filter(q);
+    if (selected) rows.get(selected)?.setAttribute('aria-current', 'true');
   }
 
   function filter(q) {
     for (const g of groups) {
       let visible = 0;
       for (const { def, row } of g.rows) {
-        const hit = !q || `${def.label} ${def.name} ${def.region} ${def.part ?? ''}`.toLowerCase().includes(q);
+        const hit = !q || `${jointText(def).label} ${def.name} ${regionName(def.region)} ${def.part ? partName(def.part) : ''}`.toLowerCase().includes(q);
         row.hidden = !hit;
         visible += hit;
       }
@@ -107,8 +113,9 @@ export function createUI(stickboy, actions) {
 
   function jointLink(name, current = false) {
     const def = stickboy.nodes.get(name).def;
-    const text = def.side === 'C' ? def.short : `${def.short} (${def.side})`;
-    const b = h('button', { type: 'button', className: `link${current ? ' current' : ''}`, textContent: text, title: def.label });
+    const j = jointText(def);
+    const text = def.side === 'C' ? j.short : `${j.short} (${sideLetter(def.side)})`;
+    const b = h('button', { type: 'button', className: `link${current ? ' current' : ''}`, textContent: text, title: j.label });
     if (!current) b.addEventListener('click', () => actions.select(name));
     return b;
   }
@@ -122,9 +129,9 @@ export function createUI(stickboy, actions) {
     if (!selected) {
       box.append(
         h('div', { className: 'empty' },
-          h('h2', { textContent: 'No joint selected' }),
-          h('p', { textContent: 'Click any joint — in the 3D view or in the list — to see its name, where it sits in the skeleton, and to rotate it.' }),
-          h('ul', {}, h('li', { textContent: 'Cyan = left side, orange = right side, white = centre line.' }), h('li', { textContent: 'Fingers are tiny: use the Left hand / Right hand views, or double-click a joint to fly to it.' })),
+          h('h2', { textContent: t('empty_title') }),
+          h('p', { textContent: t('empty_body') }),
+          h('ul', {}, h('li', { textContent: t('empty_tip_colors') }), h('li', { textContent: t('empty_tip_fingers') })),
         ),
       );
       return;
@@ -132,8 +139,8 @@ export function createUI(stickboy, actions) {
 
     const { def } = stickboy.nodes.get(selected);
     box.append(
-      h('h2', { textContent: def.label }),
-      h('div', {}, h('code', { className: 'code', textContent: def.name }), h('span', { className: 'badge', textContent: def.kind === 'joint' ? `${def.dof.length} channel${def.dof.length > 1 ? 's' : ''}` : 'end point' })),
+      h('h2', { textContent: jointText(def).label }),
+      h('div', {}, h('code', { className: 'code', textContent: def.name }), h('span', { className: 'badge', textContent: def.kind === 'joint' ? t(def.dof.length > 1 ? 'badge_channels_other' : 'badge_channels_one', { n: def.dof.length }) : t('badge_end') })),
     );
 
     const chain = stickboy.chain(selected);
@@ -142,17 +149,17 @@ export function createUI(stickboy, actions) {
       if (i) crumbs.append(h('span', { className: 'sep', textContent: '›' }));
       crumbs.append(jointLink(n, n === selected));
     });
-    box.append(h('section', {}, h('h3', { textContent: 'Position in skeleton' }), crumbs));
+    box.append(h('section', {}, h('h3', { textContent: t('sec_position') }), crumbs));
 
     const kids = childrenOf(selected);
     if (kids.length) {
       const chips = h('div', { className: 'chips' });
       kids.forEach((k) => chips.append(jointLink(k)));
-      box.append(h('section', {}, h('h3', { textContent: 'Moves with it' }), chips));
+      box.append(h('section', {}, h('h3', { textContent: t('sec_children') }), chips));
     }
 
     if (def.dof.length) {
-      const sec = h('section', {}, h('h3', { textContent: 'Rotation (degrees)' }));
+      const sec = h('section', {}, h('h3', { textContent: t('sec_rotation') }));
       for (const d of def.dof) {
         const value = stickboy.values.get(selected)[d.channel];
         const key = `${selected}.${d.channel}`;
@@ -160,8 +167,8 @@ export function createUI(stickboy, actions) {
         const out = h('output', { textContent: fmt(value) });
         const lock = h('button', { type: 'button', className: 'lock' });
         const range = h('span', { className: 'range' });
-        const row = h('div', { className: 'channel', title: 'Double-click to reset this channel' },
-          h('label', { htmlFor: input.id }, h('b', { textContent: d.channel }), d.label),
+        const row = h('div', { className: 'channel', title: t('channel_title') },
+          h('label', { htmlFor: input.id }, h('b', { textContent: d.channel }), channelLabel(d.label)),
           h('div', { className: 'ctl' }, input, out, lock),
           range,
         );
@@ -173,8 +180,8 @@ export function createUI(stickboy, actions) {
           input.value = stickboy.values.get(selected)[d.channel];
           lock.textContent = free ? '🔓' : '🔒';
           lock.setAttribute('aria-pressed', String(free));
-          lock.title = lock.ariaLabel = free ? `Unlocked: -180° to 180°. Click to restore ${d.min}° to ${d.max}°` : `Locked to ${d.min}° … ${d.max}°. Click to unlock -180° to 180°`;
-          range.textContent = free ? 'range −180° … 180° (beyond human limits)' : `range ${d.min}° … ${d.max}°`;
+          lock.title = lock.ariaLabel = t(free ? 'lock_free_title' : 'lock_locked_title', { min: d.min, max: d.max });
+          range.textContent = free ? t('range_free') : t('range_locked', { min: d.min, max: d.max });
           row.classList.toggle('free', free);
         };
         lock.addEventListener('click', () => {
@@ -201,16 +208,16 @@ export function createUI(stickboy, actions) {
         sliders.push({ input, out, channel: d.channel });
         sec.append(row);
       }
-      sec.append(h('button', { className: 'btn', type: 'button', textContent: 'Reset this joint', onclick: () => { stickboy.resetJoint(selected); sync(); actions.edited(); } }));
+      sec.append(h('button', { className: 'btn', type: 'button', textContent: t('reset_joint'), onclick: () => { stickboy.resetJoint(selected); sync(); actions.edited(); } }));
       box.append(sec);
     } else {
-      box.append(h('section', {}, h('p', { className: 'muted', textContent: 'End point: nothing to rotate here. It follows the joint above it, and marks where that bone ends.' })));
+      box.append(h('section', {}, h('p', { className: 'muted', textContent: t('end_note') })));
     }
 
     readout = h('dl', { className: 'readout' });
     box.append(
-      h('section', {}, h('h3', { textContent: 'World position' }), readout),
-      h('section', {}, h('button', { className: 'btn', type: 'button', textContent: 'Focus camera here', onclick: () => actions.focus(selected) })),
+      h('section', {}, h('h3', { textContent: t('sec_world') }), readout),
+      h('section', {}, h('button', { className: 'btn', type: 'button', textContent: t('focus_here'), onclick: () => actions.focus(selected) })),
     );
     updateReadout(true);
   }
@@ -221,15 +228,15 @@ export function createUI(stickboy, actions) {
   function updateReadout(force = false) {
     if (!readout || !selected) return;
     const p = stickboy.worldPosition(selected);
-    const cm = (v) => `${v >= 0 ? '+' : '−'}${Math.abs(v * 100).toFixed(1)} cm`;
-    const text = `${cm(p.x)}|${(p.y * 100).toFixed(1)} cm|${cm(p.z)}`;
+    const cm = (v) => `${v >= 0 ? '+' : '−'}${formatNumber(Math.abs(v * 100))} cm`;
+    const text = `${cm(p.x)}|${formatNumber(p.y * 100)} cm|${cm(p.z)}`;
     if (!force && text === lastReadout) return;
     lastReadout = text;
     const [x, y, z] = text.split('|');
     readout.replaceChildren(
-      h('dt', { textContent: 'Left (+) / right (−)' }), h('dd', { textContent: x }),
-      h('dt', { textContent: 'Height' }), h('dd', { textContent: y }),
-      h('dt', { textContent: 'Forward (+) / back (−)' }), h('dd', { textContent: z }),
+      h('dt', { textContent: t('pos_lr') }), h('dd', { textContent: x }),
+      h('dt', { textContent: t('pos_height') }), h('dd', { textContent: y }),
+      h('dt', { textContent: t('pos_fb') }), h('dd', { textContent: z }),
     );
   }
 
@@ -245,23 +252,54 @@ export function createUI(stickboy, actions) {
 
   /* --------------------------------------------------------- toolbar */
 
+  function buildViews() {
+    $('#views').replaceChildren(...VIEWS.map((key) => h('button', { className: 'btn', type: 'button', textContent: t(`view_${key}`), onclick: () => actions.view(key) })));
+  }
+
   function buildToolbar() {
-    const views = $('#views');
-    for (const [key, label] of VIEWS) views.append(h('button', { className: 'btn', type: 'button', textContent: label, onclick: () => actions.view(key) }));
+    buildViews();
+    const select = $('#lang-select');
+    select.replaceChildren(...LANGS.map((l) => h('option', { value: l.code, textContent: l.name })));
+    select.addEventListener('change', () => setLang(select.value));
     $('#t-labels').addEventListener('change', (e) => actions.toggleLabels(e.target.checked));
     $('#t-bones').addEventListener('change', (e) => actions.toggleBones(e.target.checked));
     $('#t-ground').addEventListener('change', (e) => actions.toggleGround(e.target.checked));
   }
 
   const poseButtons = new Map();
+  let activePose = null;
   function buildPoseBar() {
     const bar = $('#posebar');
+    bar.replaceChildren();
+    poseButtons.clear();
     for (const key of POSE_ORDER) {
-      const b = h('button', { className: 'btn', type: 'button', textContent: POSES[key].label, onclick: () => actions.pose(key) });
-      b.setAttribute('aria-pressed', 'false');
+      const b = h('button', { className: 'btn', type: 'button', textContent: poseLabel(key, POSES[key].label), onclick: () => actions.pose(key) });
+      b.setAttribute('aria-pressed', String(key === activePose));
       poseButtons.set(key, b);
       bar.append(b);
     }
+  }
+
+  /** Static text in index.html: data-i18n="id" sets the text, data-i18n-attr="attr:id,…" sets attributes. */
+  function applyStaticText() {
+    document.documentElement.lang = getLang();
+    document.title = t('app_title');
+    for (const el of document.querySelectorAll('[data-i18n]')) el.textContent = t(el.dataset.i18n);
+    for (const el of document.querySelectorAll('[data-i18n-attr]')) {
+      for (const pair of el.dataset.i18nAttr.split(',')) {
+        const [attr, id] = pair.split(':');
+        el.setAttribute(attr, t(id));
+      }
+    }
+    $('#lang-select').value = getLang();
+  }
+
+  function relocalize() {
+    applyStaticText();
+    buildTree();
+    buildViews();
+    buildPoseBar();
+    renderInspector();
   }
 
   /** Scroll the joint list (not the page) just enough to show `row`, clear of the sticky header. */
@@ -277,10 +315,10 @@ export function createUI(stickboy, actions) {
 
   /* ----------------------------------------------------------- public */
 
-  buildTree();
   buildToolbar();
-  buildPoseBar();
-  renderInspector();
+  $('#search').addEventListener('input', (e) => filter(e.target.value.trim().toLowerCase()));
+  relocalize();
+  onLangChange(relocalize);
 
   return {
     select(name) {
@@ -300,6 +338,7 @@ export function createUI(stickboy, actions) {
       if (name) rows.get(name)?.classList.add('hover');
     },
     setActivePose(key) {
+      activePose = key;
       for (const [k, b] of poseButtons) b.setAttribute('aria-pressed', String(k === key));
     },
     sync,

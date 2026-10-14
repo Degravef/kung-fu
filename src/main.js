@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Stickboy } from './skeleton/Stickboy.js';
 import { POSES, lerpPose, easeInOut } from './poses.js';
 import { createUI } from './ui.js';
+import { detectLang, setLang, onLangChange, t, jointText } from './i18n/index.js';
 import './style.css';
 
 const $ = (sel) => document.querySelector(sel);
@@ -52,6 +53,13 @@ const SCENE_THEME = {
   light: { bg: 0xeef1f7, floor: 0xffffff, grid: [0xaab4cc, 0xc6cee0], arrow: 0x7f8fb5 },
 };
 
+function updateThemeButton() {
+  const dark = document.documentElement.dataset.theme === 'dark';
+  const btn = $('#theme-toggle');
+  btn.textContent = t(dark ? 'theme_to_light' : 'theme_to_dark');
+  btn.title = t(dark ? 'theme_title_light' : 'theme_title_dark');
+}
+
 function applyTheme(theme, persist = true) {
   const t = SCENE_THEME[theme];
   document.documentElement.dataset.theme = theme;
@@ -68,9 +76,7 @@ function applyTheme(theme, persist = true) {
   scene.add(grid);
   front.setColor(t.arrow);
   stickboy.setTheme(theme);
-  const btn = $('#theme-toggle');
-  btn.textContent = theme === 'dark' ? '☀ Light' : '☾ Dark';
-  btn.title = `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`;
+  updateThemeButton();
   if (persist) {
     try { localStorage.setItem('theme', theme); } catch { /* private mode: just don't remember it */ }
   }
@@ -78,6 +84,15 @@ function applyTheme(theme, persist = true) {
 
 const stickboy = new Stickboy();
 scene.add(stickboy.root);
+
+// Language: saved choice, else the browser's preference (fr/nl -> Belgian variants), else English.
+let savedLang = null;
+try { savedLang = localStorage.getItem('lang'); } catch { /* storage blocked */ }
+setLang(detectLang(savedLang, navigator.languages ?? [navigator.language]));
+onLangChange((code) => {
+  updateThemeButton();
+  try { localStorage.setItem('lang', code); } catch { /* just don't remember it */ }
+});
 
 let savedTheme = null;
 try { savedTheme = localStorage.getItem('theme'); } catch { /* storage blocked */ }
@@ -279,7 +294,7 @@ function updateLabels() {
   if (s) {
     const def = stickboy.nodes.get(hovered).def;
     tooltip.replaceChildren(
-      Object.assign(document.createElement('b'), { textContent: def.label }),
+      Object.assign(document.createElement('b'), { textContent: jointText(def).label }),
       Object.assign(document.createElement('small'), { textContent: def.name }),
     );
     const tw = tooltip.offsetWidth;
