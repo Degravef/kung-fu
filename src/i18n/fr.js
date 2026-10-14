@@ -128,6 +128,14 @@ export default {
     mv_missing: '(pose manquante)',
     pos_delete_confirm_used: 'Supprimer « {name} » ? Elle est utilisée par : {moves}. Ces étapes seront ignorées quand le mouvement est joué.',
     user_move_title: 'Mouvement enregistré : {name}',
+    fold_left: 'Articulations et positions',
+    fold_right: 'Articulation sélectionnée',
+    fold_toolbar: 'Outils',
+    fold_posebar: 'Poses et mouvements',
+    fold_show: 'Afficher : {name}',
+    fold_hide: 'Masquer : {name}',
+    fs_enter: 'Plein écran',
+    fs_exit: 'Quitter le plein écran',
   },
 
   positionNames: {

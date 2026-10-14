@@ -128,6 +128,14 @@ export default {
     mv_missing: '(ontbrekende houding)',
     pos_delete_confirm_used: '“{name}” verwijderen? Ze wordt gebruikt door: {moves}. Die stappen worden overgeslagen wanneer de beweging wordt afgespeeld.',
     user_move_title: 'Opgeslagen beweging: {name}',
+    fold_left: 'Gewrichten en posities',
+    fold_right: 'Geselecteerd gewricht',
+    fold_toolbar: 'Hulpmiddelen',
+    fold_posebar: 'Houdingen en bewegingen',
+    fold_show: 'Tonen: {name}',
+    fold_hide: 'Verbergen: {name}',
+    fs_enter: 'Volledig scherm',
+    fs_exit: 'Volledig scherm sluiten',
   },
 
   positionNames: {

@@ -133,5 +133,13 @@ export default {
     mv_missing: '(missing pose)',
     pos_delete_confirm_used: 'Delete “{name}”? It is used by: {moves}. Those steps will be skipped when the move plays.',
     user_move_title: 'Saved move: {name}',
+    fold_left: 'Joints & positions',
+    fold_right: 'Selected joint',
+    fold_toolbar: 'Tools',
+    fold_posebar: 'Poses & moves',
+    fold_show: 'Show: {name}',
+    fold_hide: 'Hide: {name}',
+    fs_enter: 'Full screen',
+    fs_exit: 'Exit full screen',
   },
 };

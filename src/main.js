@@ -4,7 +4,8 @@ import { Stickboy } from './skeleton/Stickboy.js';
 import { POSES, MOVES, lerpPose, easeInOut } from './poses.js';
 import { createUI } from './ui.js';
 import { createPositionsPanel } from './positionsUI.js';
-import { detectLang, setLang, onLangChange, t, jointText, sideLetter } from './i18n/index.js';
+import { createLayout } from './layout.js';
+import { detectLang, setLang, onLangChange, t, jointText, sideLetter, moveLabel } from './i18n/index.js';
 import './style.css';
 
 const $ = (sel) => document.querySelector(sel);
@@ -119,7 +120,8 @@ const tmp = new THREE.Vector3();
 const dirTmp = new THREE.Vector3();
 const pos = (name) => stickboy.worldPosition(name, new THREE.Vector3());
 
-let panel = null; // the Positions tab (owns the user's saved poses)
+let panel = null; // the Positions tab (owns the user's saved poses and moves)
+let layout = null; // folding + fullscreen (created once the UI exists)
 const resolvePose = (key) => POSES[key] ?? panel?.poses().find((p) => p.id === key);
 
 let queue = []; // steps still to play after the current blend (a MOVE)
@@ -133,6 +135,7 @@ function startStep({ pose, duration }) {
 }
 
 function playPose(key, duration = 0.9) {
+  layout?.setMove(null); // a plain pose: nothing to replay in fullscreen
   queue = [];
   ui.setActiveMove(null);
   startStep({ pose: key, duration });
@@ -149,6 +152,8 @@ function playMove(key) {
   const steps = builtin ? [...(currentPoseKey === builtin.from ? [] : [{ pose: builtin.from, duration: 0.5 }]), ...builtin.steps] : saved.steps;
   if (!runSteps(steps)) return;
   ui.setActiveMove(key);
+  // Fullscreen shows a ▶ button for the move now on screen (replays it)
+  layout?.setMove({ label: () => (builtin ? moveLabel(key, builtin.label) : (panel?.moves().find((m) => m.id === key)?.name ?? '')), play: () => playMove(key) });
 }
 
 /** Queue steps (skipping missing poses) and start; false if nothing could play. */
@@ -163,7 +168,9 @@ function runSteps(steps) {
 /** Preview an unsaved list of steps (the move builder's draft). */
 function playSteps(steps) {
   ui.setActiveMove(null);
-  runSteps(steps);
+  if (!runSteps(steps)) return;
+  const copy = steps.map((s) => ({ ...s }));
+  layout?.setMove({ label: () => t('mv_preview'), play: () => playSteps(copy) });
 }
 
 function applyPose(p) {
@@ -200,6 +207,7 @@ function handEdited() {
   anim = null;
   queue = [];
   currentPoseKey = null;
+  layout?.setMove(null);
   ui.setActivePose(null);
   ui.setActiveMove(null);
 }
@@ -234,6 +242,7 @@ panel = createPositionsPanel(stickboy, {
   playMove,
 });
 ui.refreshPoseBar(); // saved poses from the last visit
+layout = createLayout();
 
 const focusDistance = (name) => Math.max(0.35, stickboy.nodes.get(name).def.radius * 20);
 
@@ -306,7 +315,7 @@ canvas.addEventListener('dblclick', (e) => {
   if (name) flyTo(() => [pos(name), focusDistance(name)]);
 });
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && document.activeElement?.type !== 'search') select(null);
+  if (e.key === 'Escape' && !layout?.isFullscreen() && document.activeElement?.type !== 'search') select(null);
 });
 const flyCancel = () => (focus = null);
 controls.addEventListener('start', flyCancel);

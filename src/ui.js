@@ -115,7 +115,7 @@ export function createUI(stickboy, actions) {
   }
 
   function renderInspector() {
-    const box = $('#inspector');
+    const box = $('#inspector-content');
     box.replaceChildren();
     sliders = [];
     readout = null;
@@ -324,7 +324,7 @@ export function createUI(stickboy, actions) {
 
   /** Scroll the joint list (not the page) just enough to show `row`, clear of the sticky header. */
   function scrollRowIntoView(row) {
-    const panel = $('#tree');
+    const panel = $('#tree-content');
     const head = $('.panel-head');
     const stuck = getComputedStyle(head).position === 'sticky' ? head.offsetHeight : 0;
     const r = row.getBoundingClientRect();

@@ -8,33 +8,43 @@
   <body>
     <div id="app">
       <aside id="tree" class="panel" data-i18n-attr="aria-label:joint_list_label">
-        <header class="panel-head">
-          <h1 data-i18n="tree_title">Stickboy</h1>
-          <p class="muted" data-i18n="tree_intro">Every joint has a name. Hover or select one here or in the 3D view.</p>
-          <div class="tabs" role="tablist" data-i18n-attr="aria-label:tabs_label">
-            <button class="tab" role="tab" type="button" data-tab="joints" aria-selected="true" data-i18n="tab_joints">Joints</button>
-            <button class="tab" role="tab" type="button" data-tab="positions" aria-selected="false" tabindex="-1" data-i18n="tab_positions">Positions</button>
-          </div>
-          <input id="search" type="search" data-i18n-attr="placeholder:search_placeholder,aria-label:search_label" autocomplete="off" />
-        </header>
-        <div id="tree-body"></div>
-        <div id="positions" class="positions" hidden></div>
+        <button class="fold-btn" type="button" data-fold="left" aria-controls="tree-content" aria-expanded="true">
+          <span class="fold-icon" aria-hidden="true"></span><span class="fold-label" data-i18n="fold_left">Joints &amp; positions</span>
+        </button>
+        <div class="panel-content" id="tree-content">
+          <header class="panel-head">
+            <h1 data-i18n="tree_title">Stickboy</h1>
+            <p class="muted" data-i18n="tree_intro">Every joint has a name. Hover or select one here or in the 3D view.</p>
+            <div class="tabs" role="tablist" data-i18n-attr="aria-label:tabs_label">
+              <button class="tab" role="tab" type="button" data-tab="joints" aria-selected="true" data-i18n="tab_joints">Joints</button>
+              <button class="tab" role="tab" type="button" data-tab="positions" aria-selected="false" tabindex="-1" data-i18n="tab_positions">Positions</button>
+            </div>
+            <input id="search" type="search" data-i18n-attr="placeholder:search_placeholder,aria-label:search_label" autocomplete="off" />
+          </header>
+          <div id="tree-body"></div>
+          <div id="positions" class="positions" hidden></div>
+        </div>
       </aside>
 
       <main id="stage">
-        <div id="toolbar" class="bar">
-          <div class="group" role="group" data-i18n-attr="aria-label:views_label" id="views"></div>
-          <div class="group toggles">
-            <label><input type="checkbox" id="t-labels" /> <span data-i18n="toggle_labels">All labels</span></label>
-            <label><input type="checkbox" id="t-bones" checked /> <span data-i18n="toggle_bones">Bones</span></label>
-            <label><input type="checkbox" id="t-ground" checked /> <span data-i18n="toggle_ground">Auto-ground</span></label>
-          </div>
+        <div id="toolbar" class="bar foldable">
+          <button class="fold-btn" type="button" data-fold="toolbar" aria-controls="toolbar-content" aria-expanded="true">
+            <span class="fold-icon" aria-hidden="true"></span><span class="fold-label" data-i18n="fold_toolbar">Tools</span>
+          </button>
           <select id="lang-select" class="btn lang-select" data-i18n-attr="aria-label:lang_label,title:lang_label"></select>
           <button id="theme-toggle" class="btn theme-btn" type="button" data-i18n-attr="aria-label:theme_aria"></button>
-          <div class="legend" data-i18n-attr="aria-label:legend_label">
-            <span><i class="dot side-L"></i><span data-i18n="legend_left">Left</span></span>
-            <span><i class="dot side-R"></i><span data-i18n="legend_right">Right</span></span>
-            <span><i class="dot side-C"></i><span data-i18n="legend_centre">Centre</span></span>
+          <div class="bar-content" id="toolbar-content">
+            <div class="group" role="group" data-i18n-attr="aria-label:views_label" id="views"></div>
+            <div class="group toggles">
+              <label><input type="checkbox" id="t-labels" /> <span data-i18n="toggle_labels">All labels</span></label>
+              <label><input type="checkbox" id="t-bones" checked /> <span data-i18n="toggle_bones">Bones</span></label>
+              <label><input type="checkbox" id="t-ground" checked /> <span data-i18n="toggle_ground">Auto-ground</span></label>
+            </div>
+            <div class="legend" data-i18n-attr="aria-label:legend_label">
+              <span><i class="dot side-L"></i><span data-i18n="legend_left">Left</span></span>
+              <span><i class="dot side-R"></i><span data-i18n="legend_right">Right</span></span>
+              <span><i class="dot side-C"></i><span data-i18n="legend_centre">Centre</span></span>
+            </div>
           </div>
         </div>
 
@@ -42,13 +52,25 @@
           <canvas id="canvas" data-i18n-attr="aria-label:canvas_label"></canvas>
           <div id="labels" aria-hidden="true"></div>
           <div id="tooltip" role="tooltip" hidden></div>
+          <button id="fs-toggle" class="btn fs-toggle" type="button" aria-pressed="false"></button>
+          <button id="fs-play" class="btn fs-play" type="button" hidden></button>
           <p id="hint" class="muted" data-i18n="hint">Drag to orbit · scroll to zoom · right-drag to pan · click a joint to select · double-click to focus</p>
         </div>
 
-        <div id="posebar" class="bar" role="group" data-i18n-attr="aria-label:poses_label"></div>
+        <div id="posebar-wrap" class="bar foldable">
+          <button class="fold-btn" type="button" data-fold="posebar" aria-controls="posebar" aria-expanded="true">
+            <span class="fold-icon" aria-hidden="true"></span><span class="fold-label" data-i18n="fold_posebar">Poses &amp; moves</span>
+          </button>
+          <div id="posebar" class="bar-content" role="group" data-i18n-attr="aria-label:poses_label"></div>
+        </div>
       </main>
 
-      <aside id="inspector" class="panel" data-i18n-attr="aria-label:inspector_label"></aside>
+      <aside id="inspector" class="panel" data-i18n-attr="aria-label:inspector_label">
+        <button class="fold-btn" type="button" data-fold="right" aria-controls="inspector-content" aria-expanded="true">
+          <span class="fold-icon" aria-hidden="true"></span><span class="fold-label" data-i18n="fold_right">Selected joint</span>
+        </button>
+        <div class="panel-content" id="inspector-content"></div>
+      </aside>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>

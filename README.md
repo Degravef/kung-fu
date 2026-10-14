@@ -81,6 +81,19 @@ Code: `src/positions.js` (pure data + validation, runs in Node), `src/positionsU
 The site is served from `https://<user>.github.io/<repo>/`; the build uses relative asset paths, so the sub-folder is fine.
 To take it down, set Source to "None" (or delete the repo).
 
+## Layout and fullscreen
+
+Nothing is pinned or fixed-size. The side panels are fluid (`clamp()` widths) and **fold** into a slim rail; the
+toolbar and the pose bar fold too (the buttons with ‹ › ▾ ▸). Folding is remembered, separately for wide and narrow
+screens. Below 900 px everything stacks — 3D view first, then the panels as foldable sections — and starts folded
+so the 3D view gets the room; the pose bar becomes a single swipeable row.
+
+The **⛶** button on the 3D view goes full screen (the browser's Fullscreen API, with a full-window fallback where
+it is missing, e.g. iPhone). When a move is on screen — a built-in or saved move, or a preview from the builder —
+fullscreen shows a big **▶ <move name>** button that replays it; for a plain pose there is none. Esc or **✕** leaves.
+
+Code: `src/layout.js` (folding + fullscreen, DOM-light and tested with jsdom), layout rules at the top and bottom of `src/style.css`.
+
 ## Good to know
 
 - Finger joints are tiny, so picking is done in screen space (nearest joint under the cursor, front-most wins) rather than by ray-casting. Use the **Left hand / Right hand** views or double-click a joint to fly to it.
