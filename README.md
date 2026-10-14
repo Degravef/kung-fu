@@ -74,6 +74,13 @@ because a channel value means the same thing on both sides. The torso is on the 
 
 Code: `src/positions.js` (pure data + validation, runs in Node), `src/positionsUI.js` (the tab).
 
+## Deploy (GitHub Pages)
+
+`.github/workflows/pages.yml` tests, builds and publishes the site on every push to `main`
+(a failing test stops the deployment). One-time setup in the repo: **Settings → Pages → Source: GitHub Actions**.
+The site is served from `https://<user>.github.io/<repo>/`; the build uses relative asset paths, so the sub-folder is fine.
+To take it down, set Source to "None" (or delete the repo).
+
 ## Good to know
 
 - Finger joints are tiny, so picking is done in screen space (nearest joint under the cursor, front-most wins) rather than by ray-casting. Use the **Left hand / Right hand** views or double-click a joint to fly to it.
