@@ -174,7 +174,8 @@ export function createUI(stickboy, actions) {
           input.value = stickboy.values.get(selected)[d.channel];
           lock.textContent = free ? '🔓' : '🔒';
           lock.setAttribute('aria-pressed', String(free));
-          lock.title = lock.ariaLabel = t(free ? 'lock_free_title' : 'lock_locked_title', { min: d.min, max: d.max });
+          lock.title = t(free ? 'lock_free_title' : 'lock_locked_title', { min: d.min, max: d.max });
+          lock.setAttribute('aria-label', lock.title);
           range.textContent = free ? t('range_free') : t('range_locked', { min: d.min, max: d.max });
           row.classList.toggle('free', free);
         };
@@ -274,14 +275,29 @@ export function createUI(stickboy, actions) {
       poseButtons.set(key, b);
       bar.append(b);
     }
+    // Poses the user saved (Positions tab → Whole pose): ★ buttons next to the built-in ones.
+    for (const p of actions.userPoses?.() ?? []) {
+      const b = h('button', { className: 'btn user', type: 'button', textContent: `★ ${p.name}`, title: t('user_pose_title', { name: p.name }), onclick: () => actions.pose(p.id) });
+      b.setAttribute('aria-pressed', String(p.id === activePose));
+      poseButtons.set(p.id, b);
+      bar.append(b);
+    }
     bar.append(h('span', { className: 'bar-sep', 'aria-hidden': 'true' }));
     moveButtons.clear();
+    // Moves the user saved (Positions tab → Move): dashed ▶ buttons after the built-in ones.
+    const userMoves = actions.userMoves?.() ?? [];
+    for (const m of userMoves) {
+      const b = h('button', { className: 'btn move user', type: 'button', textContent: `▶ ${m.name}`, title: t('user_move_title', { name: m.name }), onclick: () => actions.move(m.id) });
+      b.setAttribute('aria-pressed', String(m.id === activeMove));
+      moveButtons.set(m.id, b);
+    }
     for (const key of MOVE_ORDER) {
       const b = h('button', { className: 'btn move', type: 'button', textContent: `▶ ${moveLabel(key, MOVES[key].label)}`, onclick: () => actions.move(key) });
       b.setAttribute('aria-pressed', String(key === activeMove));
       moveButtons.set(key, b);
       bar.append(b);
     }
+    for (const m of userMoves) bar.append(moveButtons.get(m.id));
   }
 
   /** Static text in index.html: data-i18n="id" sets the text, data-i18n-attr="attr:id,…" sets attributes. */
@@ -350,6 +366,7 @@ export function createUI(stickboy, actions) {
       for (const [k, b] of poseButtons) b.setAttribute('aria-pressed', String(k === key));
     },
     sync,
+    refreshPoseBar: buildPoseBar,
     tick: () => updateReadout(),
   };
 }

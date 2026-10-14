@@ -6,7 +6,7 @@ import fr from '../src/i18n/fr.js';
 import nl from '../src/i18n/nl.js';
 import {
   PARTS, SIDED, BUILTIN, FORMAT, VERSION, partBaseNames, partJointNames, capturePosition, applyPosition,
-  emptyLibrary, addPosition, removePosition, renamePosition, serialize, parseLibrary, validateLibrary, mergeLibrary, loadLibrary, countPositions,
+  emptyLibrary, addPosition, addMove, updateMove, movesUsing, addWholePose, captureWholePose, removePosition, renamePosition, serialize, parseLibrary, validateLibrary, mergeLibrary, loadLibrary, countPositions,
 } from '../src/positions.js';
 
 const wrap = (part, entry) => ({ format: FORMAT, version: VERSION, positions: { [part]: [entry] } });
@@ -230,4 +230,155 @@ test('snapshot helper sanity: applying an empty position to a clean figure chang
   const s = snapshot(sb);
   for (const part of PARTS) applyPosition(sb, part, 'both', { joints: {} });
   assert.equal(snapshot(sb), s);
+});
+
+/* ------------------------------------------------------------ whole-body poses */
+
+test('captureWholePose is sparse, keeps the root offset, and re-applies exactly', () => {
+  const sb = new Stickboy();
+  sb.setPose({ root: { x: 0.0412, z: -0.2, lift: 0.1 }, joints: { elbow_R: { flex: 91.26, twist: -40 }, knee_L: { flex: 20 }, spine: { twist: 7 } } });
+  const whole = captureWholePose(sb);
+  assert.deepEqual(whole.joints, { spine: { twist: 7 }, elbow_R: { flex: 91.3, twist: -40 }, knee_L: { flex: 20 } });
+  assert.deepEqual(whole.root, { x: 0.041, z: -0.2, lift: 0.1 });
+  const other = new Stickboy();
+  assert.deepEqual(other.setPose(whole), []);
+  assert.equal(other.values.get('elbow_R').flex, 91.3);
+  assert.deepEqual(other.getPose().root, whole.root);
+});
+
+test('whole poses: unique names, mutations, count and export round-trip', () => {
+  const lib = emptyLibrary();
+  const sb = new Stickboy();
+  const a = addWholePose(lib, 'My stance', captureWholePose(sb));
+  const b = addWholePose(lib, 'my stance', { root: { x: 0, z: 0, lift: 0 }, joints: { knee_L: { flex: 30 } } });
+  assert.deepEqual([a.name, b.name], ['My stance', 'my stance (2)']);
+  assert.equal(countPositions(lib), 2);
+  assert.ok(renamePosition(lib, 'pose', a.id, 'Stance A'));
+  const r = parseLibrary(serialize(lib));
+  assert.deepEqual([r.errors, r.warnings], [[], []]);
+  assert.deepEqual(r.library, lib);
+  assert.ok(removePosition(lib, 'pose', a.id));
+  assert.equal(lib.poses.length, 1);
+});
+
+test('older files without "poses" still import; an empty library has an empty list', () => {
+  assert.deepEqual(emptyLibrary().poses, []);
+  const r = parseLibrary(JSON.stringify({ format: FORMAT, version: 1, positions: {} }));
+  assert.deepEqual([r.errors, r.fatal, r.library.poses], [[], false, []]);
+});
+
+test('import validates whole poses with exact paths, clamps and root checks', () => {
+  const file = (poses) => JSON.stringify({ format: FORMAT, version: 1, positions: {}, poses });
+  const r = parseLibrary(file([
+    { id: 'user:ok', name: 'Fine', root: { x: 0.1, z: 0, lift: 0 }, joints: { elbow_R: { flex: 90 }, spine: { twist: 5 } } },
+    { name: 'Side-less', joints: { elbow: { flex: 10 } } },
+    { name: 'Bad channel', joints: { knee_L: { bend: 10 } } },
+    { name: 'Bad root', root: { y: 1, x: 'a' }, joints: {} },
+    { name: 'Clamp me', root: { lift: -1, x: 50 }, joints: { knee_L: { flex: 300 } } },
+    { name: '', joints: {} },
+    { name: 'Reserved', id: 'builtin:x', joints: {} },
+  ]));
+  assert.deepEqual(r.library.poses.map((p) => p.name), ['Fine', 'Clamp me']);
+  const text = r.errors.join('\n');
+  assert.match(text, /poses\[1\]\.joints\.elbow: unknown joint \(names look like elbow_L/);
+  assert.match(text, /poses\[2\]\.joints\.knee_L\.bend: unknown channel \(valid: flex\)/);
+  assert.match(text, /poses\[3\]\.root\.y: unknown \(use x, z, lift/);
+  assert.match(text, /poses\[3\]\.root\.x: must be a finite number of metres \(found "a"\)/);
+  assert.match(text, /poses\[5\]\.name: a non-empty text is required/);
+  assert.match(text, /poses\[6\]\.id: "builtin:" ids are reserved/);
+  const clamped = r.library.poses[1];
+  assert.deepEqual([clamped.root, clamped.joints.knee_L.flex], [{ x: 10, z: 0, lift: 0 }, 150]);
+  assert.equal(r.warnings.length, 3);
+  assert.equal(parseLibrary(file('nope')).errors[0], 'poses: must be a list');
+});
+
+test('merge: whole poses with the same id are replaced, others added with unique names', () => {
+  const lib = emptyLibrary();
+  addWholePose(lib, 'Stance', { root: { x: 0, z: 0, lift: 0 }, joints: {} }, 'user:1');
+  const incoming = emptyLibrary();
+  addWholePose(incoming, 'Stance', { root: { x: 0, z: 0, lift: 0 }, joints: { knee_L: { flex: 9 } } }, 'user:1');
+  addWholePose(incoming, 'Stance', { root: { x: 0, z: 0, lift: 0 }, joints: {} }, 'user:2');
+  assert.deepEqual(mergeLibrary(lib, incoming), { added: 1, replaced: 1 });
+  assert.deepEqual(lib.poses.map((p) => [p.id, p.name]), [['user:1', 'Stance'], ['user:2', 'Stance (2)']]);
+  assert.equal(lib.poses[0].joints.knee_L.flex, 9);
+});
+
+/* ------------------------------------------------------------------------ moves */
+
+const mfile = (moves, extra = {}) => JSON.stringify({ format: FORMAT, version: 1, positions: {}, moves, ...extra });
+const step = (pose, duration = 0.5) => ({ pose, duration });
+
+test('moves: add / update / unique names / movesUsing / counting', () => {
+  const lib = emptyLibrary();
+  const a = addMove(lib, ' Combo ', [step('guard', 0.6), step('punch', 0.2)]);
+  const b = addMove(lib, 'combo', [step('guard')]);
+  assert.deepEqual([a.name, b.name], ['Combo', 'combo (2)']);
+  assert.equal(addMove(lib, '', [step('guard')]).name, 'Move');
+  assert.equal(countPositions(lib), 3);
+  const copy = [step('kick', 1)];
+  updateMove(lib, a.id, 'Kicks', copy);
+  copy[0].duration = 99; // later edits of the draft must not leak into the saved move
+  assert.deepEqual(lib.moves[0], { id: a.id, name: 'Kicks', steps: [{ pose: 'kick', duration: 1 }] });
+  assert.equal(updateMove(lib, 'nope', 'x', []), null);
+  assert.deepEqual(movesUsing(lib, 'kick'), ['Kicks']);
+  assert.deepEqual(movesUsing(lib, 'open'), []);
+  assert.ok(removePosition(lib, 'move', b.id));
+  assert.ok(renamePosition(lib, 'move', a.id, 'Renamed'));
+});
+
+test('moves: export → import round-trip, and files without "moves" still import', () => {
+  const lib = emptyLibrary();
+  addWholePose(lib, 'Mine', { root: { x: 0, z: 0, lift: 0 }, joints: {} }, 'user:p1');
+  addMove(lib, 'Combo', [step('guard', 0.6), step('user:p1', 0.3), step('punch', 0.25)]);
+  const r = parseLibrary(serialize(lib));
+  assert.deepEqual([r.errors, r.warnings], [[], []]);
+  assert.deepEqual(r.library, lib);
+  assert.deepEqual(parseLibrary(JSON.stringify({ format: FORMAT, version: 1, positions: {} })).library.moves, []);
+});
+
+test('moves: import validates steps with exact paths', () => {
+  const r = parseLibrary(mfile([
+    { id: 'user:ok', name: 'Fine', steps: [step('guard', 0.4), step('chamber', 0.2)] },
+    { name: 'Unknown pose', steps: [step('flying')] },
+    { name: 'No steps', steps: [] },
+    { name: 'Not a list', steps: 'x' },
+    { name: 'Bad duration', steps: [{ pose: 'guard', duration: '1' }, { pose: 'punch' }] },
+    { name: '', steps: [step('guard')] },
+    { name: 'Reserved', id: 'builtin:m', steps: [step('guard')] },
+    { name: 'Bad step', steps: [7] },
+    { name: 'Clamp', steps: [step('guard', 0), step('punch', 99)] },
+  ]));
+  assert.deepEqual(r.library.moves.map((m) => m.name), ['Fine', 'Clamp']);
+  const text = r.errors.join('\n');
+  assert.match(text, /moves\[1\]\.steps\[0\]\.pose: unknown pose "flying" \(built-in: attention, guard/);
+  assert.match(text, /moves\[2\]\.steps: must be a non-empty list/);
+  assert.match(text, /moves\[3\]\.steps: must be a non-empty list/);
+  assert.match(text, /moves\[4\]\.steps\[0\]\.duration: must be a number of seconds \(found "1"\)/);
+  assert.match(text, /moves\[4\]\.steps\[1\]\.duration: must be a number of seconds/);
+  assert.match(text, /moves\[5\]\.name: a non-empty text is required/);
+  assert.match(text, /moves\[6\]\.id: "builtin:" ids are reserved/);
+  assert.match(text, /moves\[7\]\.steps\[0\]: must be an object like/);
+  assert.deepEqual(r.library.moves[1].steps, [{ pose: 'guard', duration: 0.05 }, { pose: 'punch', duration: 10 }]);
+  assert.equal(r.warnings.length, 2);
+  assert.equal(parseLibrary(JSON.stringify({ format: FORMAT, version: 1, positions: {}, moves: 5 })).errors[0], 'moves: must be a list');
+  const tooMany = parseLibrary(mfile([{ name: 'Long', steps: Array.from({ length: 51 }, () => step('guard')) }]));
+  assert.match(tooMany.errors[0], /at most 50 steps \(found 51\)/);
+});
+
+test('moves may use saved poses from the same file or from the existing library, not from nowhere', () => {
+  const inFile = parseLibrary(mfile([{ name: 'A', steps: [step('user:p9')] }], { poses: [{ id: 'user:p9', name: 'P', joints: {} }] }));
+  assert.deepEqual([inFile.errors, inFile.library.moves.length], [[], 1]);
+  assert.match(parseLibrary(mfile([{ name: 'A', steps: [step('user:p9')] }])).errors[0], /unknown pose "user:p9"/);
+  const known = parseLibrary(mfile([{ name: 'A', steps: [step('user:p9')] }]), { knownPoseIds: ['user:p9'] });
+  assert.deepEqual([known.errors, known.library.moves.length], [[], 1]);
+});
+
+test('moves: merge replaces by id, adds new ones, keeps names unique', () => {
+  const lib = emptyLibrary();
+  addMove(lib, 'Combo', [step('guard')], 'user:m1');
+  const incoming = emptyLibrary();
+  addMove(incoming, 'Combo', [step('punch', 2)], 'user:m1');
+  addMove(incoming, 'Combo', [step('kick')], 'user:m2');
+  assert.deepEqual(mergeLibrary(lib, incoming), { added: 1, replaced: 1 });
+  assert.deepEqual(lib.moves.map((m) => [m.id, m.name, m.steps[0].pose]), [['user:m1', 'Combo', 'punch'], ['user:m2', 'Combo (2)', 'kick']]);
 });

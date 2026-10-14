@@ -94,6 +94,19 @@ summary small { color: var(--muted); font-weight: 400; margin-left: 4px; }
 .pos-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line); }
 .pos-name { min-width: 0; overflow-wrap: anywhere; }
 .pos-actions { display: flex; gap: 3px; flex: none; }
+.mv-steps { list-style: none; margin: 0; padding: 0; }
+.mv-step { display: grid; grid-template-columns: 1.6em minmax(0, 1fr) auto auto auto auto; align-items: center; gap: 4px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.mv-step.missing .mv-pose { color: var(--R); font-style: italic; }
+.mv-n { color: var(--muted); text-align: right; }
+.mv-pose { overflow-wrap: anywhere; }
+.mv-time { display: inline-flex; align-items: center; gap: 2px; }
+.mv-seconds { width: 4.2em; padding: 2px 4px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; }
+.mv-add { display: flex; gap: 6px; margin-top: 8px; }
+.mv-select { flex: 1; min-width: 0; }
+.mv-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.mv-editing { margin: 8px 0 0; color: var(--accent); font-size: 12px; font-weight: 600; }
+.mv-summary { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 14rem; }
+.btn:disabled { opacity: 0.45; cursor: default; }
 .pos-io { display: flex; gap: 6px; margin-top: 16px; }
 .pos-status { margin-top: 12px; font-size: 12px; }
 .pos-status ul { margin: 4px 0 0; padding-left: 18px; color: var(--muted); }
@@ -144,6 +157,8 @@ summary small { color: var(--muted); font-weight: 400; margin-left: 4px; }
 .btn:hover { border-color: var(--btn-hover); }
 .bar-sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 4px; }
 .btn.move { border-color: var(--accent); }
+.btn.user { border-style: dashed; }
+.btn.move.user { border-color: var(--accent); }
 .btn[aria-pressed='true'] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
 #hint { position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; font-size: 12px; pointer-events: none; padding: 0 12px; }
 

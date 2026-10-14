@@ -119,11 +119,16 @@ const tmp = new THREE.Vector3();
 const dirTmp = new THREE.Vector3();
 const pos = (name) => stickboy.worldPosition(name, new THREE.Vector3());
 
+let panel = null; // the Positions tab (owns the user's saved poses)
+const resolvePose = (key) => POSES[key] ?? panel?.poses().find((p) => p.id === key);
+
 let queue = []; // steps still to play after the current blend (a MOVE)
 let currentPoseKey = 'attention'; // last pose reached, null once the user edits by hand
 
 function startStep({ pose, duration }) {
-  anim = { from: stickboy.getPose(), to: POSES[pose], key: pose, t: 0, dur: duration };
+  const to = resolvePose(pose);
+  if (!to) return; // e.g. a saved pose deleted in the meantime
+  anim = { from: stickboy.getPose(), to, key: pose, t: 0, dur: duration };
   ui.setActivePose(pose);
 }
 
@@ -133,12 +138,32 @@ function playPose(key, duration = 0.9) {
   startStep({ pose: key, duration });
 }
 
-/** Play a move: settle into its starting position (unless already there), then run its steps. */
+/**
+ * Play a move. A built-in move settles into its starting pose (unless already there), then runs its steps.
+ * A saved move is just its ordered steps. Steps whose pose no longer exists (deleted) are skipped.
+ */
 function playMove(key) {
-  const move = MOVES[key];
-  queue = [...(currentPoseKey === move.from ? [] : [{ pose: move.from, duration: 0.5 }]), ...move.steps];
+  const builtin = MOVES[key];
+  const saved = builtin ? null : panel?.moves().find((m) => m.id === key);
+  if (!builtin && !saved) return;
+  const steps = builtin ? [...(currentPoseKey === builtin.from ? [] : [{ pose: builtin.from, duration: 0.5 }]), ...builtin.steps] : saved.steps;
+  if (!runSteps(steps)) return;
   ui.setActiveMove(key);
-  startStep(queue.shift());
+}
+
+/** Queue steps (skipping missing poses) and start; false if nothing could play. */
+function runSteps(steps) {
+  const playable = steps.filter((s) => resolvePose(s.pose));
+  if (!playable.length) return false;
+  queue = playable.slice(1);
+  startStep(playable[0]);
+  return true;
+}
+
+/** Preview an unsaved list of steps (the move builder's draft). */
+function playSteps(steps) {
+  ui.setActiveMove(null);
+  runSteps(steps);
 }
 
 function applyPose(p) {
@@ -183,6 +208,8 @@ const ui = createUI(stickboy, {
   select,
   hover,
   pose: (key) => playPose(key),
+  userPoses: () => panel?.poses() ?? [],
+  userMoves: () => panel?.moves() ?? [],
   move: (key) => playMove(key),
   view: (key) => flyTo(VIEWS[key]),
   focus: (name) => flyTo(() => [pos(name), focusDistance(name)]),
@@ -195,12 +222,18 @@ const ui = createUI(stickboy, {
   },
 });
 
-createPositionsPanel(stickboy, {
+panel = createPositionsPanel(stickboy, {
   applied() {
     handEdited();
     ui.sync();
   },
+  playPose: (key) => playPose(key),
+  posesChanged: () => ui.refreshPoseBar(),
+  movesChanged: () => ui.refreshPoseBar(),
+  playSteps,
+  playMove,
 });
+ui.refreshPoseBar(); // saved poses from the last visit
 
 const focusDistance = (name) => Math.max(0.35, stickboy.nodes.get(name).def.radius * 20);
 

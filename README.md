@@ -46,6 +46,19 @@ Hands, arms and legs share **one list for both sides**: a position is stored wit
 (`shoulder`, `index_mcp`) and applied to Left, Right or both — the right side is the exact mirror image,
 because a channel value means the same thing on both sides. The torso is on the centre line and has no side.
 
+- **Whole pose** (first button of the tab) saves the entire current pose — every joint plus the root offset — under a name.
+  It appears as a dashed **★ button in the pose bar at the bottom** next to the built-in poses, plays with the same smooth blend,
+  and is exported/imported with the rest (`"poses": [...]` in the file; unlike part positions it keeps real joint names such as `elbow_R`).
+- **Move** (second button) builds a move from an ordered list of poses — built-in or your ★ poses — each with the
+  seconds taken to blend into it (the first step blends from wherever the figure is). Reorder, remove, **Preview**, then
+  **Save move**: it gets a dashed **▶ button in the bottom bar** after the built-in move. Saved moves can be edited, played
+  and deleted from the same tab, and are exported/imported as `"moves": [...]`:
+
+  ```json
+  { "id": "user:a1", "name": "Punch combo", "steps": [ { "pose": "guard", "duration": 0.6 }, { "pose": "punch", "duration": 0.2 } ] }
+  ```
+
+  `pose` is a built-in pose key or the id of a saved pose. Deleting a pose that a move uses asks first; its step is then skipped.
 - Your positions live in the browser (`localStorage`); built-in examples are read-only.
 - **Export…** writes `kungfu-positions.json`, **Import…** merges a file back (same `id` = updated, names kept unique).
 - Imports are validated: broken positions are skipped with the exact path of the problem
