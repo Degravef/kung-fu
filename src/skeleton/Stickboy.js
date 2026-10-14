@@ -157,10 +157,12 @@ export class Stickboy {
     return { root: { ...this.rootOffset }, joints };
   }
 
-  setChannel(name, channel, degrees) {
+  /** `free` = ignore the joint's anatomical limits and allow the full ±180° (the UI's "unlock"). */
+  setChannel(name, channel, degrees, free = false) {
     const d = this.nodes.get(name)?.def.dof.find((c) => c.channel === channel);
     if (!d) return;
-    this.values.get(name)[channel] = Math.min(d.max, Math.max(d.min, num(degrees)));
+    const [lo, hi] = free ? [-180, 180] : [d.min, d.max];
+    this.values.get(name)[channel] = Math.min(hi, Math.max(lo, num(degrees)));
     this.update();
   }
 

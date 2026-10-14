@@ -28,6 +28,7 @@ export function createUI(stickboy, actions) {
   let readout = null;
   let selected = null;
   let hovered = null;
+  const unlocked = new Set(); // 'joint.channel' keys whose slider runs the full -180..180
 
   /* ------------------------------------------------------------ tree */
 
@@ -154,19 +155,46 @@ export function createUI(stickboy, actions) {
       const sec = h('section', {}, h('h3', { textContent: 'Rotation (degrees)' }));
       for (const d of def.dof) {
         const value = stickboy.values.get(selected)[d.channel];
-        const input = h('input', { type: 'range', min: d.min, max: d.max, step: 1, value, id: `ch-${d.channel}` });
+        const key = `${selected}.${d.channel}`;
+        const input = h('input', { type: 'range', step: 1, value, id: `ch-${d.channel}` });
         const out = h('output', { textContent: fmt(value) });
+        const lock = h('button', { type: 'button', className: 'lock' });
+        const range = h('span', { className: 'range' });
         const row = h('div', { className: 'channel', title: 'Double-click to reset this channel' },
           h('label', { htmlFor: input.id }, h('b', { textContent: d.channel }), d.label),
-          h('div', { className: 'ctl' }, input, out),
+          h('div', { className: 'ctl' }, input, out, lock),
+          range,
         );
+        // Locked = the joint's anatomical range; unlocked = the full -180..180.
+        const applyLock = () => {
+          const free = unlocked.has(key);
+          input.min = free ? -180 : d.min;
+          input.max = free ? 180 : d.max;
+          input.value = stickboy.values.get(selected)[d.channel];
+          lock.textContent = free ? '🔓' : '🔒';
+          lock.setAttribute('aria-pressed', String(free));
+          lock.title = lock.ariaLabel = free ? `Unlocked: -180° to 180°. Click to restore ${d.min}° to ${d.max}°` : `Locked to ${d.min}° … ${d.max}°. Click to unlock -180° to 180°`;
+          range.textContent = free ? 'range −180° … 180° (beyond human limits)' : `range ${d.min}° … ${d.max}°`;
+          row.classList.toggle('free', free);
+        };
+        lock.addEventListener('click', () => {
+          if (unlocked.has(key)) {
+            unlocked.delete(key);
+            stickboy.setChannel(selected, d.channel, stickboy.values.get(selected)[d.channel]); // pull back inside the limits
+            actions.edited();
+          } else unlocked.add(key);
+          applyLock();
+          out.textContent = fmt(stickboy.values.get(selected)[d.channel]);
+        });
+        applyLock();
         input.addEventListener('input', () => {
-          stickboy.setChannel(selected, d.channel, +input.value);
+          stickboy.setChannel(selected, d.channel, +input.value, unlocked.has(key));
           out.textContent = fmt(+input.value);
           actions.edited();
         });
-        row.addEventListener('dblclick', () => {
-          stickboy.setChannel(selected, d.channel, 0);
+        row.addEventListener('dblclick', (e) => {
+          if (e.target === lock) return;
+          stickboy.setChannel(selected, d.channel, 0, true);
           sync();
           actions.edited();
         });
