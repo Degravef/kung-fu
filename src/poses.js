@@ -146,7 +146,73 @@ export const POSES = {
   }),
 };
 
-export const POSE_ORDER = ['attention', 'guard', 'punch', 'kick', 'knife', 'open'];
+/**
+ * Roundhouse (circular) kick, right leg, from the guard: hips turn over, the knee
+ * rises to the side (chamber), then the leg whips across the body and snaps out at
+ * rib height (impact) while the trunk leans away to the left.
+ */
+const roundhouseBase = {
+  pelvis: { twist: 15 },
+  spine: { flex: -4, bend: 6, twist: -8 },
+  chest: { flex: -4, bend: 8, twist: -6 },
+  neck: { twist: -4 },
+  head: { twist: -4 },
+  // supporting (left) leg keeps its guard bend; the foot pivots in place
+  hip_L: { flex: 35, abd: 8 },
+  knee_L: { flex: 45 },
+  ankle_L: { flex: -10 },
+  shoulder_L: { flex: 50, abd: -8 },
+  elbow_L: { flex: 115 },
+  shoulder_R: { flex: 30, abd: -12 },
+  elbow_R: { flex: 120 },
+};
+
+POSES.chamber = pose('Roundhouse chamber', {
+  ...roundhouseBase,
+  hip_R: { flex: 90, abd: 55, twist: -15 },
+  knee_R: { flex: 138 },
+  ankle_R: { flex: 30 },
+  ...hand('L', 'fist'),
+  ...hand('R', 'fist'),
+}, { x: -0.039, z: 0.055 }); // root shift keeps the supporting foot where it was in the guard
+
+POSES.roundhouse = pose('Roundhouse kick', {
+  ...roundhouseBase,
+  pelvis: { twist: 40 },
+  spine: { flex: -8, bend: 16, twist: -10 },
+  chest: { flex: -8, bend: 18, twist: -10 },
+  neck: { twist: -10 },
+  head: { twist: -10 },
+  hip_R: { flex: 100, abd: 25, twist: -35 },
+  knee_R: { flex: 8 },
+  ankle_R: { flex: 35 },
+  shoulder_R: { flex: 20, abd: 30 },
+  elbow_R: { flex: 90 },
+  ...hand('L', 'fist'),
+  ...hand('R', 'fist'),
+}, { x: -0.068, z: 0.162 });
+
+export const POSE_ORDER = ['attention', 'guard', 'punch', 'kick', 'knife', 'open', 'chamber', 'roundhouse'];
+
+/**
+ * A MOVE is a timed path through poses (positions):
+ *   { label, from, steps: [{ pose, duration }] }
+ * The player first settles into `from`, then blends to each step in turn.
+ */
+export const MOVES = {
+  roundhouse: {
+    label: 'Roundhouse kick',
+    from: 'guard',
+    steps: [
+      { pose: 'chamber', duration: 0.45 }, // lift the knee, turn the hips
+      { pose: 'roundhouse', duration: 0.22 }, // whip the leg across: fast
+      { pose: 'chamber', duration: 0.3 }, // snap it back
+      { pose: 'guard', duration: 0.45 }, // plant the foot, re-guard
+    ],
+  },
+};
+
+export const MOVE_ORDER = ['roundhouse'];
 
 /* ---------------------------------------------------------------- blending */
 

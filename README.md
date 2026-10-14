@@ -6,7 +6,7 @@ hover for its name, click to select it, find it in the joint list, rotate it wit
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm test         # 381 checks on the skeleton data, kinematics and poses (no browser needed)
+npm test         # 400+ checks on the skeleton data, kinematics and poses (no browser needed)
 ```
 
 ## How it's built
@@ -29,7 +29,15 @@ Colours: cyan = left, orange = right, white = centre line. A channel value means
   joints: { shoulder_R: { flex: 98 }, elbow_R: { flex: 4, twist: -90 }, index_mcp_R: { flex: 88 } } }
 ```
 
-A *move* is a transition between two such poses (`lerpPose(a, b, t)`) — that's what the pose buttons animate.
+A **move** is a timed path through poses (see `MOVES` in `src/poses.js`); the ▶ button in the pose bar plays it:
+
+```js
+roundhouse: { label: 'Roundhouse kick', from: 'guard',
+  steps: [{ pose: 'chamber', duration: 0.45 }, { pose: 'roundhouse', duration: 0.22 },
+          { pose: 'chamber', duration: 0.3 },  { pose: 'guard', duration: 0.45 }] }
+```
+
+Each step blends channel-by-channel from the previous pose (`lerpPose(a, b, t)`). Moving a slider by hand cancels a running move.
 
 ## Good to know
 

@@ -74,7 +74,11 @@ export default {
     kick: 'Coup de pied frontal',
     knife: 'Blocage main en couteau',
     open: 'Mains ouvertes (pose en T)',
+    chamber: 'Coup de pied circulaire : armé',
+    roundhouse: 'Coup de pied circulaire : impact',
   },
+
+  moves: { roundhouse: 'Coup de pied circulaire' },
 
   /** How a side is written. Nouns carry a grammatical gender (m / f) so "gauche/droit(e)" agrees. */
   side: { L: { m: 'gauche', f: 'gauche' }, R: { m: 'droit', f: 'droite' } },

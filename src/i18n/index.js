@@ -65,6 +65,7 @@ export const sideLetter = (side) => dict().sideLetter?.[side] ?? side;
 export const channelLabel = (englishLabel) => dict().channels?.[englishLabel] ?? englishLabel;
 export const regionName = (region) => dict().regions?.[region] ?? region;
 export const partName = (part) => dict().parts?.[part] ?? part;
+export const moveLabel = (key, fallback) => dict().moves?.[key] ?? fallback;
 export const poseLabel = (key, fallback) => dict().poses?.[key] ?? fallback;
 
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);

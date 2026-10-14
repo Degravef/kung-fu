@@ -119,6 +119,8 @@ summary small { color: var(--muted); font-weight: 400; margin-left: 4px; }
   padding: 5px 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel-2); cursor: pointer; font-size: 13px;
 }
 .btn:hover { border-color: var(--btn-hover); }
+.bar-sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 4px; }
+.btn.move { border-color: var(--accent); }
 .btn[aria-pressed='true'] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
 #hint { position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; font-size: 12px; pointer-events: none; padding: 0 12px; }
 

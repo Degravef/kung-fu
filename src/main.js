@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Stickboy } from './skeleton/Stickboy.js';
-import { POSES, lerpPose, easeInOut } from './poses.js';
+import { POSES, MOVES, lerpPose, easeInOut } from './poses.js';
 import { createUI } from './ui.js';
 import { detectLang, setLang, onLangChange, t, jointText, sideLetter } from './i18n/index.js';
 import './style.css';
@@ -118,9 +118,26 @@ const tmp = new THREE.Vector3();
 const dirTmp = new THREE.Vector3();
 const pos = (name) => stickboy.worldPosition(name, new THREE.Vector3());
 
+let queue = []; // steps still to play after the current blend (a MOVE)
+let currentPoseKey = 'attention'; // last pose reached, null once the user edits by hand
+
+function startStep({ pose, duration }) {
+  anim = { from: stickboy.getPose(), to: POSES[pose], key: pose, t: 0, dur: duration };
+  ui.setActivePose(pose);
+}
+
 function playPose(key, duration = 0.9) {
-  anim = { from: stickboy.getPose(), to: POSES[key], key, t: 0, dur: duration };
-  ui.setActivePose(key);
+  queue = [];
+  ui.setActiveMove(null);
+  startStep({ pose: key, duration });
+}
+
+/** Play a move: settle into its starting position (unless already there), then run its steps. */
+function playMove(key) {
+  const move = MOVES[key];
+  queue = [...(currentPoseKey === move.from ? [] : [{ pose: move.from, duration: 0.5 }]), ...move.steps];
+  ui.setActiveMove(key);
+  startStep(queue.shift());
 }
 
 function applyPose(p) {
@@ -156,11 +173,15 @@ const ui = createUI(stickboy, {
   select,
   hover,
   pose: (key) => playPose(key),
+  move: (key) => playMove(key),
   view: (key) => flyTo(VIEWS[key]),
   focus: (name) => flyTo(() => [pos(name), focusDistance(name)]),
   edited() {
     anim = null; // the user took over
+    queue = [];
+    currentPoseKey = null;
     ui.setActivePose(null);
+    ui.setActiveMove(null);
   },
   toggleLabels: (on) => (showAllLabels = on),
   toggleBones: (on) => stickboy.setBonesVisible(on),
@@ -330,15 +351,17 @@ function resize() {
 new ResizeObserver(resize).observe(viewport);
 resize();
 
-let last = performance.now();
-function frame(now) {
-  const dt = Math.min((now - last) / 1000, 0.1);
-  last = now;
-
+/** Advance pose / camera animations by `dt` seconds (also called directly by tests). */
+function advance(dt) {
   if (anim) {
     anim.t = Math.min(1, anim.t + dt / anim.dur);
     applyPose(anim.t < 1 ? lerpPose(anim.from, anim.to, easeInOut(anim.t)) : anim.to);
-    if (anim.t >= 1) anim = null;
+    if (anim.t >= 1) {
+      currentPoseKey = anim.key;
+      anim = null;
+      if (queue.length) startStep(queue.shift());
+      else ui.setActiveMove(null);
+    }
   }
 
   if (focus) {
@@ -349,6 +372,13 @@ function frame(now) {
     camera.position.lerpVectors(focus.fromPos, tmp.copy(target).addScaledVector(focus.dir, dist), k);
     if (focus.t >= 1) focus = null;
   }
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  advance(dt);
 
   controls.update();
   camera.updateMatrixWorld(); // labels project with the camera as it is NOW, not last frame
@@ -363,4 +393,4 @@ ui.setActivePose('attention');
 requestAnimationFrame(frame);
 
 // Handy for poking around from the console while developing.
-window.kungfu = { stickboy, camera, controls, POSES, VIEWS, ui, playPose, applyPose, select, hover, pickJoint, flyTo, focusDistance };
+window.kungfu = { stickboy, camera, controls, POSES, VIEWS, ui, playPose, playMove, applyPose, advance, select, hover, pickJoint, flyTo, focusDistance };

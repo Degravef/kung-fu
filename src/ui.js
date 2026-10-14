@@ -1,6 +1,6 @@
 import { JOINT_DEFS, REGIONS, childrenOf } from './skeleton/jointDefs.js';
-import { POSES, POSE_ORDER } from './poses.js';
-import { LANGS, getLang, setLang, onLangChange, t, formatNumber, channelLabel, sideLetter, regionName, partName, poseLabel, jointText } from './i18n/index.js';
+import { POSES, POSE_ORDER, MOVES, MOVE_ORDER } from './poses.js';
+import { LANGS, getLang, setLang, onLangChange, t, formatNumber, channelLabel, sideLetter, regionName, partName, poseLabel, moveLabel, jointText } from './i18n/index.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -267,7 +267,9 @@ export function createUI(stickboy, actions) {
   }
 
   const poseButtons = new Map();
+  const moveButtons = new Map();
   let activePose = null;
+  let activeMove = null;
   function buildPoseBar() {
     const bar = $('#posebar');
     bar.replaceChildren();
@@ -276,6 +278,14 @@ export function createUI(stickboy, actions) {
       const b = h('button', { className: 'btn', type: 'button', textContent: poseLabel(key, POSES[key].label), onclick: () => actions.pose(key) });
       b.setAttribute('aria-pressed', String(key === activePose));
       poseButtons.set(key, b);
+      bar.append(b);
+    }
+    bar.append(h('span', { className: 'bar-sep', 'aria-hidden': 'true' }));
+    moveButtons.clear();
+    for (const key of MOVE_ORDER) {
+      const b = h('button', { className: 'btn move', type: 'button', textContent: `▶ ${moveLabel(key, MOVES[key].label)}`, onclick: () => actions.move(key) });
+      b.setAttribute('aria-pressed', String(key === activeMove));
+      moveButtons.set(key, b);
       bar.append(b);
     }
   }
@@ -336,6 +346,10 @@ export function createUI(stickboy, actions) {
       if (hovered) rows.get(hovered)?.classList.remove('hover');
       hovered = name;
       if (name) rows.get(name)?.classList.add('hover');
+    },
+    setActiveMove(key) {
+      activeMove = key;
+      for (const [k, b] of moveButtons) b.setAttribute('aria-pressed', String(k === key));
     },
     setActivePose(key) {
       activePose = key;

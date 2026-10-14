@@ -74,7 +74,11 @@ export default {
     kick: 'Voorwaartse trap',
     knife: 'Blok met de mesthand',
     open: 'Open handen (T-houding)',
+    chamber: 'Rondschop: opgetrokken knie',
+    roundhouse: 'Rondschop: impact',
   },
+
+  moves: { roundhouse: 'Rondschop' },
 
   side: { L: { m: 'Linker', f: 'Linker' }, R: { m: 'Rechter', f: 'Rechter' } },
   sidePlacement: 'prefix',
